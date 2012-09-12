@@ -1,6 +1,18 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2012 Jordan Fish <fishjord at msu.edu>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package edu.msu.cme.rdp.graph.cli;
 
@@ -17,17 +29,17 @@ import org.apache.commons.lang.StringUtils;
  * @author fishjord
  */
 public class BloomFilterStats {
-    
-    public static void printStats(BloomFilter filter, PrintStream out) {
-        
 
-	long n = filter.getUniqueKmers();
-	long m = (long)Math.pow(2, filter.getHashSizeLog2());
-	int k = filter.getHashCount();
+    public static void printStats(BloomFilter filter, PrintStream out) {
+
+
+        long n = filter.getUniqueKmers();
+        long m = (long) Math.pow(2, filter.getHashSizeLog2());
+        int k = filter.getHashCount();
 
         //(1-e^(-k*((n+.5)/(m-1))))^k
         double falsePositiveRate = Math.pow((1 - Math.pow(Math.E, -k * ((n + .5) / (m - 1)))), k);
-        
+
         out.println("Bloom filter created on:       " + filter.getCreatedOn());
         out.println("Serializable id:               " + BloomFilter.serialVersionUID);
         out.println();
@@ -51,19 +63,19 @@ public class BloomFilterStats {
         out.println("Total unique kmers:            " + filter.getUniqueKmers());
         out.println("Predicted false positive rate: " + falsePositiveRate);
     }
-    
+
     public static void main(String[] args) throws Exception {
-        if(args.length != 1) {
+        if (args.length != 1) {
             System.err.println("USAGE: BloomFilterStats <bloom_filter>");
             System.exit(1);
         }
-        
+
         File bloomFile = new File(args[0]);
-        
+
         ObjectInputStream ois = ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(bloomFile)));
         BloomFilter filter = (BloomFilter) ois.readObject();
         ois.close();
-        
+
         printStats(filter, System.out);
     }
 }
