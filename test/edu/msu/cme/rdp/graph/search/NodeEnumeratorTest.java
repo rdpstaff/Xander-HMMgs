@@ -1,0 +1,351 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package edu.msu.cme.rdp.graph.search;
+
+import com.sun.org.apache.xpath.internal.axes.SubContextList;
+import edu.msu.cme.rdp.alignment.hmm.ProfileHMM;
+import edu.msu.cme.rdp.alignment.hmm.TSC;
+import edu.msu.cme.rdp.alignment.hmm.XSC;
+import edu.msu.cme.rdp.alignment.hmm.XSTATES;
+import edu.msu.cme.rdp.graph.filter.BloomFilter;
+import edu.msu.cme.rdp.graph.filter.BloomFilter.GraphBuilder;
+import edu.msu.cme.rdp.graph.filter.BloomFilter.RightCodonFacade;
+import edu.msu.cme.rdp.graph.filter.NextCodon;
+import edu.msu.cme.rdp.graph.search.HMMGraphSearch.PartialResult;
+import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.readseq.SequenceType;
+import java.util.*;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+/**
+ *
+ * @author fishjord
+ */
+public class NodeEnumeratorTest {
+
+    private static class MockProfileHMM extends ProfileHMM {
+
+        private final int k, m;
+        private final SequenceType t;
+
+        public MockProfileHMM(int k, int m, SequenceType t) {
+            this.k = k;
+            this.m = m;
+            this.t = t;
+        }
+
+        @Override
+        public int K() {
+            return k;
+        }
+
+        @Override
+        public int M() {
+            return m;
+        }
+
+        @Override
+        public SequenceType getAlphabet() {
+            return t;
+        }
+
+        @Override
+        public double getMaxMatchEmission(int i) {
+            return -.25;
+        }
+
+        @Override
+        public double isc(int k, char b) {
+            return -1;
+        }
+
+        @Override
+        public double isc(int k, int b) {
+            return -1;
+        }
+
+        @Override
+        public double msc(int k, char b) {
+            return 0;
+        }
+
+        @Override
+        public double msc(int k, int b) {
+            return 0;
+        }
+
+        @Override
+        public void reconfigureLength(int L) {
+        }
+
+        @Override
+        public void rescaleMatchEmission(int k, char b, double scale) {
+        }
+
+        @Override
+        public double tsc(int k, TSC trans) {
+            return -.5;
+        }
+
+        @Override
+        public double[] tsc(TSC trans) {
+            return null;
+        }
+
+        @Override
+        public double xsc(XSTATES xstate, XSC trans) {
+            return -1;
+        }
+
+        @Override
+        public void xsc(XSTATES xstate, XSC trans, double val) {
+        }
+    }
+
+    /**
+     * Test of getNextCodon and getSibCodon method, of class BloomFilter.
+     */
+    @Test
+    public void testLongRightProt() {
+        int hashSizeLog2 = 20;
+        int hashCount = 3;
+        int kmerSize = 63;
+        int bitsetSizeLog2 = 16;
+
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
+        // first kmer: aaattgaaga
+        String seq =     "ATGTCTTTGCGCCAGATTGCGTTCTACGGTAAGGGCGGTATCGGAAAGTCCACCACCTCCCAGAACACCCTGGCCGCGCTGGTCGAGCTGGATCAGAAGATCCTGATCGTCGGCTGCGATCCGAAGGCCGACTCGACCCGCCTGATCCTGCACGCCAAGGCGCAGGACACCGTGCTGCACCTCGCCGCCGAAGCCGGCTCGGTCGAGGATCTGGAACTCGAGGACGTTCTCAAGATCGGCTACAAGGGCATCAAGTGCGTCGAGTCCGGCGGTCCGGAGCCGGGGGTCGGCTGCGCCGGCCGCGGCGTGATCACCTCGATCAACTTCCTCGAAGAGAACGGCGCCTACGACGACGTGGACTACGTCTCCTACGACGTGCTGGGCGACGTGGTGTGCGGCGGTTTCGCCATGCCCATCCGCGAGAACAAGGCCCAGGAAATCTACATCGTCATGTCCGGTGAGATGATGGCGCTCTACGCCGCCAACAACATCGCCAAGGGCATTCTGAAGTACGCGCACAGCGGCGGCGTGCGCCTCGGCGGCCTGATCTGCAACGAGCGCCAGACCGACAAGGAAATCGACCTCGCCTCGGCCCTGGCCGCCCGCCTCGGCACCCAGCTCATCCACTTCGTGCCGCGCGACAACATCGTGCAGCACGCCGAGCTGCGCCGCATGACCGTGATCGAGTACGCGCCGGACAGCCAGCAGGCCCAGGAATACCGCCAGCTCGCCAACAAGGTCCACGCGAACAAGGGCAAGGGCACCATCCCGACCCCGATCACGATGGAAGAGCTGGAGGAGATGCTGATGGACTTCGGCATCATGAAGTCGGAGGAGCAGCAGCTCGCCGAGCTCCAGGCCAAGGAAGCCGCCAAGGCCTGA";
+        String testMer = "ATGTCTTTGCGCCAGATTGCGTTCTACGGTAAGGGCGGTATCGGAAAGTCCACCACCTCCCAG";
+
+        NextCodon nc;
+
+        graphBuilder.addString(seq.toCharArray());
+        // test frame 0
+        BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
+        AStarNode start = new AStarNode(null, new Kmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
+        AStarNode curr;
+        Set<AStarNode> neighbors;
+        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(20, 10, SequenceType.Protein));
+
+        curr = start;
+
+        neighbors = ne.enumerateNodes(curr, codonFacade, new HashSet());
+        assertEquals(3, neighbors.size());
+        curr = neighbors.iterator().next();
+        nc = kmerToCodon(curr.kmer);
+        assertEquals("Expected n not " + nc.getAminoAcid(), 'n', nc.getAminoAcid());
+
+        neighbors = ne.enumerateNodes(curr, codonFacade, new HashSet());
+        assertEquals((curr.state == 'm')? 3 : 2, neighbors.size());
+        curr = neighbors.iterator().next();
+        nc = kmerToCodon(curr.kmer);
+        assertEquals("Expected t not " + nc.getAminoAcid(), 't', nc.getAminoAcid());
+
+        neighbors = ne.enumerateNodes(curr, codonFacade, new HashSet());
+        assertEquals((curr.state == 'm')? 3 : 2, neighbors.size());
+        curr = neighbors.iterator().next();
+        nc = kmerToCodon(curr.kmer);
+        assertEquals("Expected l not " + nc.getAminoAcid(), 'l', nc.getAminoAcid());
+    }
+
+    private static NextCodon kmerToCodon(Kmer kmer) {
+        String s = kmer.toString();
+        char[] charmer = s.substring(s.length() - 3).toCharArray();
+
+        return new NextCodon(true, Kmer.validateLookup[charmer[0]], Kmer.validateLookup[charmer[1]], Kmer.validateLookup[charmer[2]]);
+    }
+
+    @Test
+    public void testNuclEnumerate() {
+        int hashSizeLog2 = 20;
+        int hashCount = 3;
+        int kmerSize = 10;
+        int bitsetSizeLog2 = 16;
+
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
+        // first kmer: aaattgaaga
+        String seq = "aaattgaagagtttgatcatggct";
+        String testMer;
+
+        graphBuilder.addString(seq.toCharArray());
+        testMer = "aaattgaaga";
+        BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
+
+        AStarNode start = new AStarNode(null, new Kmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
+
+        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(4, 10, SequenceType.Nucleotide));
+        List<PriorityQueue<AStarNode>> neighbors = new ArrayList();
+        neighbors.add(new PriorityQueue());
+        neighbors.get(0).add(start);
+
+        for (int index = 0; index < 5; index++) {
+            PriorityQueue<AStarNode> rank = neighbors.get(neighbors.size() - 1);
+            PriorityQueue<AStarNode> next = new PriorityQueue();
+            for (AStarNode node : rank) {
+                next.addAll(ne.enumerateNodes(node, codonFacade, new HashSet()));
+            }
+
+            neighbors.add(next);
+        }
+
+        PriorityQueue<AStarNode> rank = neighbors.get(neighbors.size() - 1);
+
+        int i = 0;
+        for (AStarNode node : rank) {
+            PartialResult result = HMMGraphSearch.partialResultFromGoal(node, true, false, 10, 1);
+            assertTrue(nuclExpected.contains(result.alignment));
+            nuclExpected.remove(result.alignment);
+        }
+
+        assertTrue(nuclExpected.isEmpty());
+    }
+
+    @Test
+    public void testProtEnumerate() {
+        int hashSizeLog2 = 20;
+        int hashCount = 3;
+        int kmerSize = 6;
+        int bitsetSizeLog2 = 16;
+
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
+        // first kmer: aaattgaaga
+        String seq = "aaattgaagagtttgatcatggct";
+        String testMer;
+
+        graphBuilder.addString(seq.toCharArray());
+        testMer = "aaattg";
+        BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
+
+        AStarNode start = new AStarNode(null, new Kmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
+
+        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(20, 10, SequenceType.Protein));
+        List<PriorityQueue<AStarNode>> neighbors = new ArrayList();
+        neighbors.add(new PriorityQueue());
+        neighbors.get(0).add(start);
+
+        for (int index = 0; index < 10; index++) {
+            PriorityQueue<AStarNode> rank = neighbors.get(neighbors.size() - 1);
+            PriorityQueue<AStarNode> next = new PriorityQueue();
+            for (AStarNode node : rank) {
+                next.addAll(ne.enumerateNodes(node, codonFacade, new HashSet()));
+            }
+
+            neighbors.add(next);
+        }
+
+        PriorityQueue<AStarNode> rank = neighbors.get(neighbors.size() - 1);
+
+        int i = 0;
+        for (AStarNode node : rank) {
+            PartialResult result = HMMGraphSearch.partialResultFromGoal(node, true, false, 10, 1);
+            System.err.println(result.alignment);
+        }
+    }
+
+    private static final Set<String> nuclExpected = new HashSet(Arrays.asList(new String[]{"-----",
+        "-G---",
+        "G----",
+        "---G-",
+        "--G--",
+        "G-T--",
+        "-GTT-",
+        "GTT--",
+        "GTTT-",
+        "GT---",
+        "-GT--",
+        "GT---",
+        "-G-T-",
+        "--GT-",
+        "gT---",
+        "-GtT-",
+        "gT-T-",
+        "GtT--",
+        "--G-T",
+        "gTT--",
+        "G-TT-",
+        "gTTT-",
+        "gttT-",
+        "G--T-",
+        "GttT-",
+        "-G-TT",
+        "-G--T",
+        "GT-T-",
+        "GTT-T",
+        "G-T-T",
+        "GtT-T",
+        "gT--T",
+        "----G",
+        "GTtT-",
+        "gTT-T",
+        "gTtT-",
+        "---Gt",
+        "G-TtT",
+        "G-TTT",
+        "GtTT-",
+        "G-TTt",
+        "G---T",
+        "gtT--",
+        "gtTT-",
+        "gTTtG",
+        "GT--T",
+        "-G-Tt",
+        "G--TT",
+        "-GT-T",
+        "GtttG",
+        "GT-TT",
+        "GT-Tt",
+        "-GTTT",
+        "--GTt",
+        "-GTTt",
+        "--GTT",
+        "-GttT",
+        "-Gttt",
+        "--Gtt",
+        "--GtT",
+        "-GTtT",
+        "-GTtt",
+        "-GtTT",
+        "gT-TT",
+        "-GtTt",
+        "GTtTG",
+        "gT-Tt",
+        "GTtTg",
+        "GTttG",
+        "GTttg",
+        "gTtTG",
+        "---GT",
+        "gTtTg",
+        "gTttG",
+        "gTttg",
+        "GtTTG",
+        "G-Ttt",
+        "GtTTg",
+        "gtT-T",
+        "GTTTG",
+        "GTTTg",
+        "GTTtG",
+        "GTTtg",
+        "gTTTG",
+        "gtTTG",
+        "gTTTg",
+        "GtTtG",
+        "GtTtg",
+        "gtTTg",
+        "gTTtg",
+        "G--Tt",
+        "gttTG",
+        "gttTg",
+        "gtttG",
+        "gtttg",
+        "GttTG",
+        "gtTtG",
+        "GttTg",
+        "gtTtg",
+        "Gtttg"}));
+}
