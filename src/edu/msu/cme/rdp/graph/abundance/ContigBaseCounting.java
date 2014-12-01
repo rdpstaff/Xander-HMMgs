@@ -43,7 +43,12 @@ public class ContigBaseCounting {
     private final Set<Integer>[][] baseOccurences;
     private final KmerSet<Set<Point>> kmerSet;  //X = contig index, Y = kmer's position in contig
     private int processedSeqs = 0;
-
+        
+    private long[] val;
+    private Set<Point> refKmerCoords;
+    private NuclKmerGenerator kmerGen;
+    private int seqid, kindex;
+    
     public ContigBaseCounting(File contigFile, int k) throws IOException, ClassNotFoundException {
         this.k = k;
 
@@ -79,7 +84,7 @@ public class ContigBaseCounting {
 
         kindex = 0;
         while (kmerGen.hasNext()) {
-            val = kmerGen.next();
+            val = kmerGen.next().getLongKmers();
             Set<Point> kmers = kmerSet.get(val);
             if (kmers == null) {
                 kmers = new HashSet();
@@ -95,7 +100,7 @@ public class ContigBaseCounting {
 
         kindex = seqString.length() - k;
         while (kmerGen.hasNext()) {
-            val = kmerGen.next();
+            val = kmerGen.next().getLongKmers();
             Set<Point> kmers = kmerSet.get(val);
             if (kmers == null) {
                 kmers = new HashSet();
@@ -106,17 +111,12 @@ public class ContigBaseCounting {
         }
         
     }
-    
-    private long val;
-    private Set<Point> refKmerCoords;
-    private NuclKmerGenerator kmerGen;
-    private int seqid, kindex;
 
     public void processSeq(Sequence seq) {
         kmerGen = new NuclKmerGenerator(seq.getSeqString(), k);
 
         while (kmerGen.hasNext()) {
-            val = kmerGen.next();
+            val = kmerGen.next().getLongKmers();
 
             refKmerCoords = kmerSet.get(val);
 

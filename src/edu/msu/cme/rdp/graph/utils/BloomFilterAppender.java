@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package edu.msu.cme.rdp.graph.cli;
+package edu.msu.cme.rdp.graph.utils;
 
+import edu.msu.cme.rdp.graph.utils.BloomFilterStats;
 import edu.msu.cme.rdp.graph.filter.BloomFilter;
 import edu.msu.cme.rdp.readseq.readers.Sequence;
 import edu.msu.cme.rdp.readseq.readers.SequenceReader;

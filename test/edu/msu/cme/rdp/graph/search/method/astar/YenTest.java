@@ -18,9 +18,8 @@ package edu.msu.cme.rdp.graph.search.method.astar;
 
 import edu.msu.cme.rdp.graph.search.AStarNode;
 import edu.msu.cme.rdp.graph.search.CandidatePath;
-import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
@@ -34,9 +33,9 @@ public class YenTest {
 
     @Test
     public void testAStarNode() {
-        AStarNode node = new AStarNode(null, new Kmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
-        AStarNode good = new AStarNode(null, new Kmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
-        AStarNode bad = new AStarNode(null, new Kmer(new char[]{ 'a', 'a', 't' }), 0, 0, 0, 'd');
+        AStarNode node = new AStarNode(null, new NuclKmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
+        AStarNode good = new AStarNode(null, new NuclKmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
+        AStarNode bad = new AStarNode(null, new NuclKmer(new char[]{ 'a', 'a', 't' }), 0, 0, 0, 'd');
 
         assertEquals(node, good);
         assertFalse(node.equals(bad));
@@ -44,27 +43,27 @@ public class YenTest {
 
     @Test
     public void testPath() {
-        AStarNode node11 = new AStarNode(null, new Kmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
-        AStarNode node12 = new AStarNode(node11, new Kmer(new char[]{ 'a', 'a', 't' }), 0, 0, 1, 'm');
-        AStarNode node13 = new AStarNode(node12, new Kmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'i');
-        AStarNode node14 = new AStarNode(node13, new Kmer(new char[]{ 'a', 't', 'a' }), 0, 0, 2, 'd');
+        AStarNode node11 = new AStarNode(null, new NuclKmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
+        AStarNode node12 = new AStarNode(node11, new NuclKmer(new char[]{ 'a', 'a', 't' }), 0, 0, 1, 'm');
+        AStarNode node13 = new AStarNode(node12, new NuclKmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'i');
+        AStarNode node14 = new AStarNode(node13, new NuclKmer(new char[]{ 'a', 't', 'a' }), 0, 0, 2, 'd');
 
-        CandidatePath path1 = new CandidatePath(node14, new HashSet());
+        CandidatePath path1 = new CandidatePath(node14);
 
-        AStarNode node21 = new AStarNode(null, new Kmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
-        AStarNode node22 = new AStarNode(node21, new Kmer(new char[]{ 'a', 'a', 't' }), 0, 0, 1, 'm');
-        AStarNode node23 = new AStarNode(node22, new Kmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'i');
-        CandidatePath path2 = new CandidatePath(node23, new HashSet());
+        AStarNode node21 = new AStarNode(null, new NuclKmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
+        AStarNode node22 = new AStarNode(node21, new NuclKmer(new char[]{ 'a', 'a', 't' }), 0, 0, 1, 'm');
+        AStarNode node23 = new AStarNode(node22, new NuclKmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'i');
+        CandidatePath path2 = new CandidatePath(node23);
 
-        AStarNode node31 = new AStarNode(null, new Kmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
-        AStarNode node32 = new AStarNode(node31, new Kmer(new char[]{ 'a', 'a', 'g' }), 0, 0, 1, 'm');
-        AStarNode node33 = new AStarNode(node32, new Kmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'd');
-        CandidatePath path3 = new CandidatePath(node33, new HashSet());
+        AStarNode node31 = new AStarNode(null, new NuclKmer(new char[]{ 'a', 'a', 'a' }), 0, 0, 0, 'm');
+        AStarNode node32 = new AStarNode(node31, new NuclKmer(new char[]{ 'a', 'a', 'g' }), 0, 0, 1, 'm');
+        AStarNode node33 = new AStarNode(node32, new NuclKmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'd');
+        CandidatePath path3 = new CandidatePath(node33);
 
-        AStarNode node41 = new AStarNode(null, new Kmer(new char[]{ 'a', 'a', 'g' }), 0, 0, 0, 'm');
-        AStarNode node42 = new AStarNode(node41, new Kmer(new char[]{ 'a', 'a', 't' }), 0, 0, 1, 'm');
-        AStarNode node43 = new AStarNode(node42, new Kmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'i');
-        CandidatePath path4 = new CandidatePath(node43, new HashSet());
+        AStarNode node41 = new AStarNode(null, new NuclKmer(new char[]{ 'a', 'a', 'g' }), 0, 0, 0, 'm');
+        AStarNode node42 = new AStarNode(node41, new NuclKmer(new char[]{ 'a', 'a', 't' }), 0, 0, 1, 'm');
+        AStarNode node43 = new AStarNode(node42, new NuclKmer(new char[]{ 'a', 't', 'a' }), 0, 0, 1, 'i');
+        CandidatePath path4 = new CandidatePath(node43);
 
         assertEquals("Path 1's length incorrect", 4, path1.length());
         assertEquals("Path 2's length incorrect", 3, path2.length());

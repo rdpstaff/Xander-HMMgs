@@ -17,6 +17,8 @@
 package edu.msu.cme.rdp.graph.filter;
 
 import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
+import edu.msu.cme.rdp.readseq.utils.NuclBinMapping;
 import java.util.Random;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -40,13 +42,13 @@ public class PathHolderTest {
             for (int index = 0; index < l; index++) {
                 byte add = (byte) r.nextInt(4);
                 holder.push(add);
-                expected.append(Kmer.intToChar[add]);
+                expected.append(NuclBinMapping.intToChar[add]);
             }
 
             assertEquals(expected.toString(), new String(holder.toCharArray()));
             StringBuilder buf = new StringBuilder();
             for (int index = 0; index < holder.size(); index++) {
-                buf.append(Kmer.intToChar[holder.get(index)]);
+                buf.append(NuclBinMapping.intToChar[holder.get(index)]);
             }
             assertEquals(expected.toString(), buf.toString());
         }
@@ -59,11 +61,11 @@ public class PathHolderTest {
         String expectedString = new String(expected).replace('u', 't');
         String expectedReverse = new StringBuilder(expectedString).reverse().toString();
 
-        path.init(new Kmer(expectedReverse.toCharArray()));
+        path.init(new NuclKmer(expectedReverse.toCharArray()));
         assertEquals(expectedReverse, new String(path.toCharArray()));
         assertEquals(expectedReverse, pathToStringViaGet(path));
 
-        path.init(new Kmer(expected));
+        path.init(new NuclKmer(expected));
         assertEquals(expectedString, new String(path.toCharArray()));
         assertEquals(expectedString, pathToStringViaGet(path));
 
@@ -71,7 +73,7 @@ public class PathHolderTest {
         while(path.size() > 0) {
             char exp = expectedString.charAt(substr);
             String e = expectedString.substring(0, substr--);
-            char removed = Kmer.intToChar[path.remove()];
+            char removed = NuclBinMapping.intToChar[path.remove()];
 
             assertEquals(exp, removed);
             assertEquals(e, new String(path.toCharArray()));
@@ -84,11 +86,11 @@ public class PathHolderTest {
         Kmer kmer;
         PathHolder path = new PathHolder();
 
-        kmer = Kmer.randomKmer(30);
+        kmer = NuclKmer.randomKmer(30);
         path.init(kmer);
         assertEquals(kmer.toString(), new String(path.toCharArray()));
 
-        kmer = Kmer.randomKmer(60);
+        kmer = NuclKmer.randomKmer(60);
         path.init(kmer);
         assertEquals(kmer.toString(), new String(path.toCharArray()));
     }
@@ -96,7 +98,7 @@ public class PathHolderTest {
     private String pathToStringViaGet(PathHolder path) {
         StringBuilder ret = new StringBuilder();
         for(int index = 0;index < path.size();index++) {
-            ret.append(Kmer.intToChar[path.get(index)]);
+            ret.append(NuclBinMapping.intToChar[path.get(index)]);
         }
 
         return ret.toString();

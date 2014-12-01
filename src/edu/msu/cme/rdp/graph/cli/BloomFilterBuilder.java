@@ -16,6 +16,7 @@
  */
 package edu.msu.cme.rdp.graph.cli;
 
+import edu.msu.cme.rdp.graph.utils.BloomFilterStats;
 import edu.msu.cme.rdp.graph.filter.BloomFilter;
 import edu.msu.cme.rdp.readseq.SequenceFormat;
 import edu.msu.cme.rdp.readseq.readers.Sequence;
@@ -54,7 +55,7 @@ public class BloomFilterBuilder {
 
         SequenceReader reader = new SequenceReader(readFile);
         Sequence seq;
-        BloomFilter filter = new BloomFilter(28, numHashes, kmerSize, 8);
+        BloomFilter filter = new BloomFilter(28, numHashes, kmerSize, 8, 1);
         BloomFilter.GraphBuilder builder = filter.new GraphBuilder();
 
         int seqCount = 0;
@@ -81,13 +82,13 @@ public class BloomFilterBuilder {
         List<File> readFiles = new ArrayList();
 
         for (int index = 0; index < args.length; index++) {
-	    File f = new File(args[index]);
-	    if(!f.exists()) {
-		break;
-	    }
+            File f = new File(args[index]);
+            if(!f.exists()) {
+                break;
+            }
             SequenceFormat format = SeqUtils.guessFileFormat(f);
             if (format == SequenceFormat.UNKNOWN || format == SequenceFormat.EMPTY) {
-		break;
+                break;
             }
 
             readFiles.add(new File(args[index]));
@@ -95,10 +96,15 @@ public class BloomFilterBuilder {
 
         args = Arrays.copyOfRange(args, readFiles.size(), args.length);
 
-        if (args.length < 3 || args.length > 5) {
-            System.err.println("USAGE: BloomFilterBuilder <read_file> <bloom_out> <kmerSize> <bloomSizeLog2> [# hashCount = 4] [bitsetSizeLog2]");
-	    System.err.println("Unexpected number of arguments: " + args.length);
-	    System.err.println("Input files: " + readFiles);
+        if (args.length < 3 || args.length > 6) {
+            System.err.println("USAGE: BloomFilterBuilder <read_file> <bloom_out> <kmerSize> <bloomSizeLog2> [cutoff = 2] [# hashCount = 4] [bitsetSizeLog2 = 30]");
+            System.err.println("\tread_file\n\t\tfasta or fastq files containing the reads to build the graph from " );
+            System.err.println("\tbloom_out\n\t\tfile to write the bloom filter to " );
+            System.err.println("\tkmerSize\n\t\tshould be multiple of 3, (recommend 45, minimum 30, maximum 63) " );
+            System.err.println("\tbloomSizeLog2\n\t\tthe size of the bloom filter (or memory needed) is 2^bloomSizeLog2 bits, increase if the predicted false positive rate is greater than 1%" );           
+            System.err.println("\tcutoff\n\t\tminimum number of times a kmer has to be observed in SEQFILE to be included in the final bloom filter");
+            System.err.println("\thashCount\n\t\tnumber of hash functions, recommend 4");
+            System.err.println("\tbitsetSizeLog2\n\t\tthe size of one bitSet 2^bitsetSizeLog2, recommend 30");           
             System.exit(1);
         }
 
@@ -108,15 +114,21 @@ public class BloomFilterBuilder {
         final int hashSizeLog2 = Integer.parseInt(args[2]);
         final int hashCount;
         final int bitsetSizeLog2;
-
+        final int cutoff;
+        
         if (args.length > 3) {
-            hashCount = Integer.parseInt(args[3]);
+            cutoff = Integer.parseInt(args[3]);
+        } else {
+            cutoff = 1;
+        }
+        if (args.length > 4) {
+            hashCount = Integer.parseInt(args[4]);
         } else {
             hashCount = 4;
         }
 
-        if (args.length > 4) {
-            bitsetSizeLog2 = Integer.parseInt(args[4]);
+        if (args.length > 5) {
+            bitsetSizeLog2 = Integer.parseInt(args[5]);
         } else {
             if (hashSizeLog2 > 30) {
                 bitsetSizeLog2 = 30;
@@ -125,7 +137,6 @@ public class BloomFilterBuilder {
                 while (tmpBitsetSize < hashSizeLog2) {
                     tmpBitsetSize <<= 1;
                 }
-
                 bitsetSizeLog2 = tmpBitsetSize >> 1;
             }
         }
@@ -135,16 +146,11 @@ public class BloomFilterBuilder {
         } else {
             outputFile.createNewFile();
         }
-
         if (!outputFile.canWrite()) {
             throw new IOException("Cannot write to bloom filter file " + outputFile);
         }
-
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
-        BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
-
-        long seqCount = 0;
-
+        
+        int numBits = (int) Math.floor(Math.log(cutoff)/Math.log(2)) + 1;
         System.err.println("Starting to build bloom filter at " + new Date());
         System.err.println("*  reads file(s):       " + readFiles);
         System.err.println("*  bloom output:     " + outputFile);
@@ -152,6 +158,13 @@ public class BloomFilterBuilder {
         System.err.println("*  hash size log2:   " + hashSizeLog2);
         System.err.println("*  hash count:       " + hashCount);
         System.err.println("*  bitset size log2: " + bitsetSizeLog2);
+        System.err.println("*  bits per bucket:  " + numBits);
+        System.err.println("*  minimum count:    " + cutoff);
+        
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
+        BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
+
+        long seqCount = 0;
 
         long startTime = System.currentTimeMillis();
 
@@ -170,6 +183,8 @@ public class BloomFilterBuilder {
             }
             reader.close();
         }
+        //Collapsing counting bloom filter 
+        filter.collapse(cutoff);
         long endTime = System.currentTimeMillis();
 
         ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile)));

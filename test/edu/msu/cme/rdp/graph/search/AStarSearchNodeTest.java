@@ -16,8 +16,7 @@
  */
 package edu.msu.cme.rdp.graph.search;
 
-import edu.msu.cme.rdp.graph.filter.PathHolder;
-import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -33,13 +32,13 @@ public class AStarSearchNodeTest {
     @Test
     public void testComparison() {
         //AStarSearchNode discoveredFrom, long kmer, long fwdHash, long rcHash, int stateNo, char state
-        AStarNode node1 = new AStarNode(null, new Kmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'm');
-        AStarNode node2 = new AStarNode(null, new Kmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'd');
-        AStarNode node3 = new AStarNode(null, new Kmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'i');
-        AStarNode node4 = new AStarNode(null, new Kmer(new char[]{'a', 'c', 'g'}), 0, 0, 15, 'm');
-        AStarNode node5 = new AStarNode(null, new Kmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'm');
-        AStarNode node6 = new AStarNode(null, new Kmer(new char[]{'c', 'g', 'a'}), 0, 0, 16, 'm');
-        AStarNode node7 = new AStarNode(null, new Kmer(new char[]{'t', 'a', 'c'}), 0, 0, 50, 'm');
+        AStarNode node1 = new AStarNode(null, new NuclKmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'm');
+        AStarNode node2 = new AStarNode(null, new NuclKmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'd');
+        AStarNode node3 = new AStarNode(null, new NuclKmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'i');
+        AStarNode node4 = new AStarNode(null, new NuclKmer(new char[]{'a', 'c', 'g'}), 0, 0, 15, 'm');
+        AStarNode node5 = new AStarNode(null, new NuclKmer(new char[]{'a', 'a', 'a'}), 0, 0, 15, 'm');
+        AStarNode node6 = new AStarNode(null, new NuclKmer(new char[]{'c', 'g', 'a'}), 0, 0, 16, 'm');
+        AStarNode node7 = new AStarNode(null, new NuclKmer(new char[]{'t', 'a', 'c'}), 0, 0, 50, 'm');
 
         assertTrue(node1.equals(node1));
         assertTrue(node1.equals(node5));

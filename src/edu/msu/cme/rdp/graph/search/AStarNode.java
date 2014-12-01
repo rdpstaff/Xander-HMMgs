@@ -16,16 +16,17 @@
  */
 package edu.msu.cme.rdp.graph.search;
 
-import edu.msu.cme.rdp.graph.filter.PathHolder;
 import edu.msu.cme.rdp.kmer.Kmer;
+import java.io.PrintStream;
 import java.io.Serializable;
 
 /**
  *
- * @author fishjord
+ * @author fishjord (edited by gilmanma)
  */
 public class AStarNode implements Serializable, Comparable<AStarNode> {
 
+    public boolean partial = true;
     public AStarNode discoveredFrom;
     public final Kmer kmer;
     public final long fwdHash, rcHash;
@@ -33,9 +34,21 @@ public class AStarNode implements Serializable, Comparable<AStarNode> {
     public final char state;
     public final int stateNo;
     public int fval;
-    public boolean hasNewKmer;
     public double thisNodeScore;
     public int indels;
+    public double realScore;
+    public int length;
+    public char emission;
+    
+    /**
+     * Number of nodes along this path since the highest scoring node
+     */
+    public int negativeCount = 0;
+    
+    /**
+     * Highest score seen on the current path
+     */
+    public double maxScore = 0;
 
     public AStarNode(AStarNode discoveredFrom, Kmer kmer, long fwdHash, long rcHash, int stateNo, char state) {
         this.discoveredFrom = discoveredFrom;
@@ -44,6 +57,15 @@ public class AStarNode implements Serializable, Comparable<AStarNode> {
         this.kmer = kmer;
         this.stateNo = stateNo;
         this.state = state;
+    }
+    
+    /**
+     * Prints the kmer, length, state, state number, adjusted score, and real score.
+     * 
+     * @param out   PrintStream to output to
+     */
+    public void print(PrintStream out) {
+        out.println(kmer + "\t" + length + "\t" + state + "\t" + stateNo + "\t" + score + "\t" + realScore + "\t" + negativeCount);
     }
 
     @Override

@@ -14,21 +14,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package edu.msu.cme.rdp.graph.cli;
+package edu.msu.cme.rdp.graph.sandbox;
 
 import edu.msu.cme.rdp.graph.filter.BloomFilter;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
-import java.io.PrintStream;
+import edu.msu.cme.rdp.graph.filter.CodonWalker;
+import edu.msu.cme.rdp.kmer.trie.KmerGenerator;
+import edu.msu.cme.rdp.readseq.readers.SeqReader;
+import edu.msu.cme.rdp.readseq.readers.Sequence;
+import edu.msu.cme.rdp.readseq.readers.SequenceReader;
+import java.io.*;
 import org.apache.commons.lang.StringUtils;
 
 /**
  *
  * @author fishjord
  */
-public class BloomFilterStats {
+public class CheckReadKmerPresence {
 
     public static void printStats(BloomFilter filter, PrintStream out) {
 
@@ -65,17 +66,33 @@ public class BloomFilterStats {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            System.err.println("USAGE: BloomFilterStats <bloom_filter>");
+        if (args.length != 2) {
+            System.err.println("USAGE: CheckReadKmerPresence <bloom_filter> <nucl_seq_file>");
             System.exit(1);
         }
 
         File bloomFile = new File(args[0]);
+        SeqReader reader = new SequenceReader(new File(args[1]));
 
         ObjectInputStream ois = ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(bloomFile)));
         BloomFilter filter = (BloomFilter) ois.readObject();
         ois.close();
 
         printStats(filter, System.out);
+        Sequence seq;
+        CodonWalker walker = null;
+        while ((seq = reader.readNextSequence()) != null) {
+            int kmerNum = 0;
+            for (char[] kmer : KmerGenerator.getKmers(seq.getSeqString(), filter.getKmerSize())) {
+                System.out.print(seq.getSeqName() + "\t" + (++kmerNum) + "\t" + kmer + "\t");
+                try {
+                    walker = filter.new RightCodonFacade(kmer);
+                    System.out.println("true");
+                } catch (Exception e) {
+                    System.out.println("false");
+                }
+
+            }
+        }
     }
 }

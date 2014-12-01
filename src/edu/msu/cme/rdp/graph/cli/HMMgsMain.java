@@ -16,6 +16,9 @@
  */
 package edu.msu.cme.rdp.graph.cli;
 
+import edu.msu.cme.rdp.graph.utils.BloomFilterAppender;
+import edu.msu.cme.rdp.graph.utils.ContigMerger;
+import edu.msu.cme.rdp.graph.utils.BloomFilterStats;
 import java.util.Arrays;
 
 /**
@@ -38,6 +41,7 @@ public class HMMgsMain {
         System.err.println("\tsearch      - Search a bloom filter with an hmm");
         System.err.println("\tmerge       - Merge HMMgs left and right fragments");
         System.err.println("\tlicense     - Print the license");
+        System.err.println("\tfind-cuts   - Search bloom filter for cuts");
         System.exit(1);
     }
 
@@ -57,10 +61,14 @@ public class HMMgsMain {
             BloomFilterStats.main(args);
         } else if (cmd.equals("search")) {
             TimeLimitedSearch.main(args);
+        } else if (cmd.equals("basic")) {
+            BasicSearch.main(args);
         } else if (cmd.equals("merge")) {
             ContigMerger.main(args);
         } else if (cmd.equals("license")) {
             printLicense();
+        } else if (cmd.equals("find-cuts")) {
+            CutFinder.main(args);
         } else {
             printUsageAndExit();
         }

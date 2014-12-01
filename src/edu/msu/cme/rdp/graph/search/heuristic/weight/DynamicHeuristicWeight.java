@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Jordan Fish <fishjord at msu.edu>
+ * Copyright (C) 2014 gilmanma
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,17 +14,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package edu.msu.cme.rdp.graph.utils;
+
+package edu.msu.cme.rdp.graph.search.heuristic.weight;
+
+import edu.msu.cme.rdp.alignment.hmm.ProfileHMM;
+import edu.msu.cme.rdp.graph.search.AStarNode;
 
 /**
  *
- * @author fishjord
+ * @author gilmanma
  */
-public class SearchStartsReader {
-    int lkmer;
-    int rkmer;
-    int lstate;
-    int rstate;
+public class DynamicHeuristicWeight extends HeuristicWeight {
     
+    public DynamicHeuristicWeight(double epsilon) {
+        super(epsilon);
+    }
 
+    public DynamicHeuristicWeight(double epsilon, ProfileHMM hmm) {
+        super(epsilon, hmm);
+    }
+
+    @Override
+    public double w(AStarNode node) {
+        return (1 + epsilon) * (1 - node.length/hmm.M());
+    }
+    
 }

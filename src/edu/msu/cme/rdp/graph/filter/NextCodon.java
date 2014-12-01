@@ -16,7 +16,7 @@
  */
 package edu.msu.cme.rdp.graph.filter;
 
-import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
 import edu.msu.cme.rdp.readseq.utils.ProteinUtils;
 import edu.msu.cme.rdp.readseq.utils.ProteinUtils.AminoAcid;
 import java.io.Serializable;
@@ -62,7 +62,7 @@ public class NextCodon implements Serializable {
 
     @Override
     public String toString() {
-        return aminoAcid + " " + new Kmer(codon, 3) + " " +  Long.toBinaryString(codon);
+        return aminoAcid + " " + new NuclKmer(codon, 3) + " " +  Long.toBinaryString(codon);
     }
 
     @Override

@@ -16,7 +16,6 @@
  */
 package edu.msu.cme.rdp.graph.search;
 
-import com.sun.org.apache.xpath.internal.axes.SubContextList;
 import edu.msu.cme.rdp.alignment.hmm.ProfileHMM;
 import edu.msu.cme.rdp.alignment.hmm.TSC;
 import edu.msu.cme.rdp.alignment.hmm.XSC;
@@ -26,8 +25,12 @@ import edu.msu.cme.rdp.graph.filter.BloomFilter.GraphBuilder;
 import edu.msu.cme.rdp.graph.filter.BloomFilter.RightCodonFacade;
 import edu.msu.cme.rdp.graph.filter.NextCodon;
 import edu.msu.cme.rdp.graph.search.HMMGraphSearch.PartialResult;
+import edu.msu.cme.rdp.graph.search.heuristic.weight.HeuristicWeight;
+import edu.msu.cme.rdp.graph.search.heuristic.weight.StaticHeuristicWeight;
 import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
 import edu.msu.cme.rdp.readseq.SequenceType;
+import edu.msu.cme.rdp.readseq.utils.NuclBinMapping;
 import java.util.*;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -38,6 +41,8 @@ import static org.junit.Assert.*;
  */
 public class NodeEnumeratorTest {
 
+    int numBits = 1;
+    
     private static class MockProfileHMM extends ProfileHMM {
 
         private final int k, m;
@@ -127,7 +132,7 @@ public class NodeEnumeratorTest {
         int kmerSize = 63;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq =     "ATGTCTTTGCGCCAGATTGCGTTCTACGGTAAGGGCGGTATCGGAAAGTCCACCACCTCCCAGAACACCCTGGCCGCGCTGGTCGAGCTGGATCAGAAGATCCTGATCGTCGGCTGCGATCCGAAGGCCGACTCGACCCGCCTGATCCTGCACGCCAAGGCGCAGGACACCGTGCTGCACCTCGCCGCCGAAGCCGGCTCGGTCGAGGATCTGGAACTCGAGGACGTTCTCAAGATCGGCTACAAGGGCATCAAGTGCGTCGAGTCCGGCGGTCCGGAGCCGGGGGTCGGCTGCGCCGGCCGCGGCGTGATCACCTCGATCAACTTCCTCGAAGAGAACGGCGCCTACGACGACGTGGACTACGTCTCCTACGACGTGCTGGGCGACGTGGTGTGCGGCGGTTTCGCCATGCCCATCCGCGAGAACAAGGCCCAGGAAATCTACATCGTCATGTCCGGTGAGATGATGGCGCTCTACGCCGCCAACAACATCGCCAAGGGCATTCTGAAGTACGCGCACAGCGGCGGCGTGCGCCTCGGCGGCCTGATCTGCAACGAGCGCCAGACCGACAAGGAAATCGACCTCGCCTCGGCCCTGGCCGCCCGCCTCGGCACCCAGCTCATCCACTTCGTGCCGCGCGACAACATCGTGCAGCACGCCGAGCTGCGCCGCATGACCGTGATCGAGTACGCGCCGGACAGCCAGCAGGCCCAGGAATACCGCCAGCTCGCCAACAAGGTCCACGCGAACAAGGGCAAGGGCACCATCCCGACCCCGATCACGATGGAAGAGCTGGAGGAGATGCTGATGGACTTCGGCATCATGAAGTCGGAGGAGCAGCAGCTCGCCGAGCTCCAGGCCAAGGAAGCCGCCAAGGCCTGA";
@@ -138,26 +143,28 @@ public class NodeEnumeratorTest {
         graphBuilder.addString(seq.toCharArray());
         // test frame 0
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
-        AStarNode start = new AStarNode(null, new Kmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
+        AStarNode start = new AStarNode(null, new NuclKmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
         AStarNode curr;
         Set<AStarNode> neighbors;
-        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(20, 10, SequenceType.Protein));
+        // this needs test
+        HeuristicWeight hweight = new StaticHeuristicWeight(0.0);
+        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(20, 10, SequenceType.Protein), hweight);
 
         curr = start;
 
-        neighbors = ne.enumerateNodes(curr, codonFacade, new HashSet());
+        neighbors = ne.enumerateNodes(curr, codonFacade);
         assertEquals(3, neighbors.size());
         curr = neighbors.iterator().next();
         nc = kmerToCodon(curr.kmer);
         assertEquals("Expected n not " + nc.getAminoAcid(), 'n', nc.getAminoAcid());
 
-        neighbors = ne.enumerateNodes(curr, codonFacade, new HashSet());
+        neighbors = ne.enumerateNodes(curr, codonFacade);
         assertEquals((curr.state == 'm')? 3 : 2, neighbors.size());
         curr = neighbors.iterator().next();
         nc = kmerToCodon(curr.kmer);
         assertEquals("Expected t not " + nc.getAminoAcid(), 't', nc.getAminoAcid());
 
-        neighbors = ne.enumerateNodes(curr, codonFacade, new HashSet());
+        neighbors = ne.enumerateNodes(curr, codonFacade);
         assertEquals((curr.state == 'm')? 3 : 2, neighbors.size());
         curr = neighbors.iterator().next();
         nc = kmerToCodon(curr.kmer);
@@ -168,7 +175,7 @@ public class NodeEnumeratorTest {
         String s = kmer.toString();
         char[] charmer = s.substring(s.length() - 3).toCharArray();
 
-        return new NextCodon(true, Kmer.validateLookup[charmer[0]], Kmer.validateLookup[charmer[1]], Kmer.validateLookup[charmer[2]]);
+        return new NextCodon(true, NuclBinMapping.validateLookup[charmer[0]], NuclBinMapping.validateLookup[charmer[1]], NuclBinMapping.validateLookup[charmer[2]]);
     }
 
     @Test
@@ -178,7 +185,7 @@ public class NodeEnumeratorTest {
         int kmerSize = 10;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq = "aaattgaagagtttgatcatggct";
@@ -188,9 +195,11 @@ public class NodeEnumeratorTest {
         testMer = "aaattgaaga";
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
 
-        AStarNode start = new AStarNode(null, new Kmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
+        AStarNode start = new AStarNode(null, new NuclKmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
 
-        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(4, 10, SequenceType.Nucleotide));
+        // this needs test
+        HeuristicWeight hweight = new StaticHeuristicWeight(0.0);
+        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(4, 10, SequenceType.Nucleotide), hweight);
         List<PriorityQueue<AStarNode>> neighbors = new ArrayList();
         neighbors.add(new PriorityQueue());
         neighbors.get(0).add(start);
@@ -199,7 +208,7 @@ public class NodeEnumeratorTest {
             PriorityQueue<AStarNode> rank = neighbors.get(neighbors.size() - 1);
             PriorityQueue<AStarNode> next = new PriorityQueue();
             for (AStarNode node : rank) {
-                next.addAll(ne.enumerateNodes(node, codonFacade, new HashSet()));
+                next.addAll(ne.enumerateNodes(node, codonFacade));
             }
 
             neighbors.add(next);
@@ -224,7 +233,7 @@ public class NodeEnumeratorTest {
         int kmerSize = 6;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq = "aaattgaagagtttgatcatggct";
@@ -234,9 +243,11 @@ public class NodeEnumeratorTest {
         testMer = "aaattg";
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
 
-        AStarNode start = new AStarNode(null, new Kmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
+        AStarNode start = new AStarNode(null, new NuclKmer(testMer.toCharArray()), codonFacade.getFwdHash(), codonFacade.getRcHash(), 0, 'm');
 
-        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(20, 10, SequenceType.Protein));
+        // this needs test
+        HeuristicWeight hweight = new StaticHeuristicWeight(0.0);
+        NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(20, 10, SequenceType.Protein), hweight);
         List<PriorityQueue<AStarNode>> neighbors = new ArrayList();
         neighbors.add(new PriorityQueue());
         neighbors.get(0).add(start);
@@ -245,7 +256,7 @@ public class NodeEnumeratorTest {
             PriorityQueue<AStarNode> rank = neighbors.get(neighbors.size() - 1);
             PriorityQueue<AStarNode> next = new PriorityQueue();
             for (AStarNode node : rank) {
-                next.addAll(ne.enumerateNodes(node, codonFacade, new HashSet()));
+                next.addAll(ne.enumerateNodes(node, codonFacade));
             }
 
             neighbors.add(next);

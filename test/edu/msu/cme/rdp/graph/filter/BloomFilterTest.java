@@ -17,6 +17,7 @@
 package edu.msu.cme.rdp.graph.filter;
 
 import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.readseq.utils.NuclBinMapping;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -34,6 +35,8 @@ import static org.junit.Assert.*;
  */
 public class BloomFilterTest {
 
+    int numBits = 1;
+    
     public BloomFilterTest() {
     }
 
@@ -46,9 +49,9 @@ public class BloomFilterTest {
         int hashSizeLog2 = 20;
         int hashCount = 3;
         int kmerSize = 10;
-        int bitsetSizeLog2 = 16;
+        int bitsetSizeLog2 = 16;        
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         String seq = "aaattgaagagtttgatcatggctcagattgaacgctggcggca";
 
@@ -81,7 +84,7 @@ public class BloomFilterTest {
         int kmerSize = 10;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq = "aaattgaagaa";
@@ -182,7 +185,7 @@ public class BloomFilterTest {
         int kmerSize = 63;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq =     "ATGTCTTTGCGCCAGATTGCGTTCTACGGTAAGGGCGGTATCGGAAAGTCCACCACCTCCCAGAACACCCTGGCCGCGCTGGTCGAGCTGGATCAGAAGATCCTGATCGTCGGCTGCGATCCGAAGGCCGACTCGACCCGCCTGATCCTGCACGCCAAGGCGCAGGACACCGTGCTGCACCTCGCCGCCGAAGCCGGCTCGGTCGAGGATCTGGAACTCGAGGACGTTCTCAAGATCGGCTACAAGGGCATCAAGTGCGTCGAGTCCGGCGGTCCGGAGCCGGGGGTCGGCTGCGCCGGCCGCGGCGTGATCACCTCGATCAACTTCCTCGAAGAGAACGGCGCCTACGACGACGTGGACTACGTCTCCTACGACGTGCTGGGCGACGTGGTGTGCGGCGGTTTCGCCATGCCCATCCGCGAGAACAAGGCCCAGGAAATCTACATCGTCATGTCCGGTGAGATGATGGCGCTCTACGCCGCCAACAACATCGCCAAGGGCATTCTGAAGTACGCGCACAGCGGCGGCGTGCGCCTCGGCGGCCTGATCTGCAACGAGCGCCAGACCGACAAGGAAATCGACCTCGCCTCGGCCCTGGCCGCCCGCCTCGGCACCCAGCTCATCCACTTCGTGCCGCGCGACAACATCGTGCAGCACGCCGAGCTGCGCCGCATGACCGTGATCGAGTACGCGCCGGACAGCCAGCAGGCCCAGGAATACCGCCAGCTCGCCAACAAGGTCCACGCGAACAAGGGCAAGGGCACCATCCCGACCCCGATCACGATGGAAGAGCTGGAGGAGATGCTGATGGACTTCGGCATCATGAAGTCGGAGGAGCAGCAGCTCGCCGAGCTCCAGGCCAAGGAAGCCGCCAAGGCCTGA";
@@ -191,16 +194,16 @@ public class BloomFilterTest {
         graphBuilder.addString(seq.toCharArray());
         // test frame 0
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
-        assertEquals((byte)Kmer.a, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.a, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.c, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.a, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.c, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.c, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.c, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.t, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.g, (byte)codonFacade.getNextNucl());
-        assertEquals((byte)Kmer.g, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.a, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.a, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.c, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.a, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.c, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.c, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.c, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.t, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.g, (byte)codonFacade.getNextNucl());
+        assertEquals((byte)NuclBinMapping.g, (byte)codonFacade.getNextNucl());
         assertNull(codonFacade.getSibNucl());
         assertNull(codonFacade.getSibNucl());
         assertNull(codonFacade.getSibNucl());
@@ -224,7 +227,7 @@ public class BloomFilterTest {
         int kmerSize = 63;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq =     "ATGTCTTTGCGCCAGATTGCGTTCTACGGTAAGGGCGGTATCGGAAAGTCCACCACCTCCCAGAACACCCTGGCCGCGCTGGTCGAGCTGGATCAGAAGATCCTGATCGTCGGCTGCGATCCGAAGGCCGACTCGACCCGCCTGATCCTGCACGCCAAGGCGCAGGACACCGTGCTGCACCTCGCCGCCGAAGCCGGCTCGGTCGAGGATCTGGAACTCGAGGACGTTCTCAAGATCGGCTACAAGGGCATCAAGTGCGTCGAGTCCGGCGGTCCGGAGCCGGGGGTCGGCTGCGCCGGCCGCGGCGTGATCACCTCGATCAACTTCCTCGAAGAGAACGGCGCCTACGACGACGTGGACTACGTCTCCTACGACGTGCTGGGCGACGTGGTGTGCGGCGGTTTCGCCATGCCCATCCGCGAGAACAAGGCCCAGGAAATCTACATCGTCATGTCCGGTGAGATGATGGCGCTCTACGCCGCCAACAACATCGCCAAGGGCATTCTGAAGTACGCGCACAGCGGCGGCGTGCGCCTCGGCGGCCTGATCTGCAACGAGCGCCAGACCGACAAGGAAATCGACCTCGCCTCGGCCCTGGCCGCCCGCCTCGGCACCCAGCTCATCCACTTCGTGCCGCGCGACAACATCGTGCAGCACGCCGAGCTGCGCCGCATGACCGTGATCGAGTACGCGCCGGACAGCCAGCAGGCCCAGGAATACCGCCAGCTCGCCAACAAGGTCCACGCGAACAAGGGCAAGGGCACCATCCCGACCCCGATCACGATGGAAGAGCTGGAGGAGATGCTGATGGACTTCGGCATCATGAAGTCGGAGGAGCAGCAGCTCGCCGAGCTCCAGGCCAAGGAAGCCGCCAAGGCCTGA";
@@ -258,7 +261,7 @@ public class BloomFilterTest {
         int kmerSize = 10;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq = "aagaagttaaa";
@@ -360,7 +363,7 @@ public class BloomFilterTest {
         int hashCount = 3;
         int kmerSize = 10;
         int bitsetSizeLog2 = 16;
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq1 = "aaattgaagagtttgatcatggct";
@@ -434,7 +437,7 @@ public class BloomFilterTest {
         int kmerSize = 4;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq =  "aaattgacgaa";
@@ -449,33 +452,33 @@ public class BloomFilterTest {
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
         char nextCodon;
 
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected C not " + nextCodon, 'c', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected G not " + nextCodon, 'g', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
         assertNull(codonFacade.getNextNucl());
 
         graphBuilder.addString(seq1.toCharArray());
         codonFacade = filter.new RightCodonFacade(testMer);
 
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getSibNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getSibNucl()];
         assertEquals("Expected T not " + nextCodon, 't', (char)nextCodon);
 
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected G not " + nextCodon, 'g', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected G not " + nextCodon, 'g', (char)nextCodon);
         assertNull(codonFacade.getNextNucl());
     }
@@ -487,7 +490,7 @@ public class BloomFilterTest {
         int kmerSize = 4;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq =  "gatttgacgaa";
@@ -502,25 +505,25 @@ public class BloomFilterTest {
         BloomFilter.LeftCodonFacade codonFacade = filter.new LeftCodonFacade(testMer);
         Character nextCodon;
 
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected T not " + nextCodon, 't', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected G not " + nextCodon, 'g', (char)nextCodon);
         assertNull(codonFacade.getNextNucl());
 
         graphBuilder.addString(seq1.toCharArray());
         codonFacade = filter.new LeftCodonFacade(testMer);
 
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getSibNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getSibNucl()];
         assertEquals("Expected T not " + nextCodon, 't', (char)nextCodon);
 
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected A not " + nextCodon, 'a', (char)nextCodon);
-        nextCodon = Kmer.intToChar[codonFacade.getNextNucl()];
+        nextCodon = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         assertEquals("Expected G not " + nextCodon, 'g', (char)nextCodon);
         assertNull(codonFacade.getNextNucl());
     }
@@ -532,7 +535,7 @@ public class BloomFilterTest {
         int kmerSize = 4;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq =  "acgaaa";
@@ -547,10 +550,10 @@ public class BloomFilterTest {
 
         char c;
 
-        c = Kmer.intToChar[codonFacade.getNextNucl()];
+        c = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         System.out.println(codonFacade.getPathString());
         assertEquals('a', c);
-        c = Kmer.intToChar[codonFacade.getNextNucl()];
+        c = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         System.out.println(codonFacade.getPathString());
         assertEquals('a', c);
         assertNull(codonFacade.getNextNucl());
@@ -558,11 +561,11 @@ public class BloomFilterTest {
         assertNull(codonFacade.getSibNucl());
         System.out.println(codonFacade.getPathString());
 
-        c = Kmer.intToChar[codonFacade.getSibNucl()];
+        c = NuclBinMapping.intToChar[codonFacade.getSibNucl()];
         System.out.println(codonFacade.getPathString());
         assertEquals('g', c);
         System.out.println(codonFacade.getPathString());
-        c = Kmer.intToChar[codonFacade.getNextNucl()];
+        c = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
         System.out.println(codonFacade.getPathString());
         assertEquals("Expected c not " + c, 'c', c);
         assertNull(codonFacade.getNextNucl());
@@ -582,7 +585,7 @@ public class BloomFilterTest {
         int kmerSize = 6;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq =  "acgatcagttta";

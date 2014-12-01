@@ -23,13 +23,17 @@ import edu.msu.cme.rdp.graph.search.HMMGraphSearch;
 import edu.msu.cme.rdp.graph.search.HMMGraphSearch.HackTerminateException;
 import edu.msu.cme.rdp.graph.search.SearchResult;
 import edu.msu.cme.rdp.graph.search.SearchTarget;
+import edu.msu.cme.rdp.graph.search.heuristic.weight.DynamicHeuristicWeight;
+import edu.msu.cme.rdp.graph.search.heuristic.weight.HeuristicWeight;
+import edu.msu.cme.rdp.graph.search.heuristic.weight.RevisedDynamicHeuristicWeight;
+import edu.msu.cme.rdp.graph.search.heuristic.weight.StaticHeuristicWeight;
+import edu.msu.cme.rdp.kmer.io.KmerStart;
+import edu.msu.cme.rdp.kmer.io.KmerStartsReader;
 import edu.msu.cme.rdp.readseq.SequenceType;
 import edu.msu.cme.rdp.readseq.writers.FastaWriter;
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.ObjectInputStream;
 import java.util.Arrays;
 import java.util.Date;
@@ -41,7 +45,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  *
- * @author fishjord
+ * @author fishjord (edited by gilmanma)
  */
 public class TimeLimitedSearch {
 
@@ -105,18 +109,66 @@ public class TimeLimitedSearch {
             return super.cancel(c);
         }
     }
+    
+    /**
+     * Output usage information to STDERR.
+     * 
+     * @param full  whether to display option information
+     */
+    private static void printUsage(boolean full) {
+        System.err.println("USAGE: TimeLimitedSearch [-h] [-u] [-p <max_negative>] [-w <heuristic_weight>] [-m <heuristic_weight_method>] <k> <limit_in_seconds> <bloom_filter> <for_hmm> <rev_hmm> <kmers>");
+        if(full) {
+            System.err.println("\nOptions:");
+            System.err.println("\t-h\n\t\tprint this help information");
+            System.err.println("\t-u\n\t\tdon't normalize the hmm input");
+            System.err.println("\t-p MAX_NEGATIVE\n\t\tmaximum number of consecutive decreases in real score before being pruned (default -1)");
+            System.err.println("\t-w HEURISTIC_WEIGHT\n\t\tbase number used by the heuristic weighting function (default 0.0)");
+            System.err.println("\t-m HEURISTIC_WEIGHT_METHOD\n\t\tmethod to use when calculating the weight of the heuristic (default 'static')");
+            System.err.println("\tk\n\t\tnumber of best local assemblies to return for each kmer");
+            System.err.println("\tlimit_in_seconds\n\t\tdtime limit for individual searches (conservative suggestion = 100)");
+            System.err.println("\tbloom_filter\n\t\tbloom filter built using hmmgs build");
+            System.err.println("\tfor_hmm, rev_hmm\n\t\thidden markov models, HMMER3 format");
+            System.err.println("\tkmers\n\t\tstarting points (can use KmerFilter's fast_kmer_filter to identify starting points)");
+		   
+        }
+    }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 6 && !(args.length == 7 && args[0].equals("-u"))) {
-            System.err.println("USAGE: TimeLimitedSearch -u <k> <limit_in_seconds> <bloom_filter> <for_hmm> <rev_hmm> <kmers>");
+        if ((args.length < 6 && args.length != 1)|| args.length > 13) {
+            printUsage(true);
             System.exit(1);
         }
 
-        int index = 0;
+        // check for optional arguments
         boolean normalized = true;
-        if(args.length == 7) {
-            normalized = false;
-            args = Arrays.copyOfRange(args, 1, args.length);
+        int heuristicPruning = -1;
+        String hweightstr = "static";
+        double weight = 1.0;
+        int optCount = 0;
+        for(int i = 0; i < 6; ++i) {
+            if (args[i].equals("-u")) {
+                normalized = false;
+                optCount++;
+            } else if (args[i].equals("-p")) {
+                heuristicPruning = Integer.parseInt(args[i+1]);
+                i++;
+                optCount += 2;
+            } else if (args[i].equals("-w")) {
+                weight = Double.parseDouble(args[i+1]);
+                i++;
+                optCount += 2;
+            } else if (args[i].equals("-m")) {
+                hweightstr = args[i+1];
+                i++;
+                optCount += 2;
+            } else if (args[i].equals("-h")) {
+                printUsage(true);
+                System.exit(1);
+            }
+        }
+        
+        if(optCount > 0) {
+            args = Arrays.copyOfRange(args, optCount, args.length);
         }
 
         int k = Integer.valueOf(args[0]);
@@ -131,7 +183,16 @@ public class TimeLimitedSearch {
         File alignOutFile = new File(kmersFile.getName() + ".alignment");
         File protOutFile = new File(kmersFile.getName() + "_prot.fasta");
 
-        HMMGraphSearch search = new HMMGraphSearch(k);
+        HeuristicWeight hweight;
+        if(hweightstr.equals("static")) {
+            hweight = new StaticHeuristicWeight(weight);
+        } else if (hweightstr.equals("dynamic")) {
+            hweight = new DynamicHeuristicWeight(weight);
+        } else if (hweightstr.equals("revised_dynamic")) {
+            hweight = new RevisedDynamicHeuristicWeight(weight);
+        } else {
+            throw new RuntimeException("Invalid argument for heuristic weight: " + hweightstr);
+        }
 
         ProfileHMM forHMM;
         ProfileHMM revHMM;
@@ -153,11 +214,8 @@ public class TimeLimitedSearch {
             protOut = new FastaWriter(protOutFile);
         }
 
-        String line;
-        BufferedReader reader = new BufferedReader(new FileReader(kmersFile));
-
         int kmerCount = 0;
-        int contigCount = 1;
+        int contigCount = 0;
 
         long startTime;
 
@@ -176,62 +234,35 @@ public class TimeLimitedSearch {
         System.err.println("*  # paths:                 " + k);
         System.err.println("*  Nucl contigs out file    " + nuclOutFile);
         System.err.println("*  Prot contigs out file    " + protOutFile);
+        System.err.println("*  heuristicPruning         " + heuristicPruning);
+        System.err.println("*  HeuristicWeightMethod    " + hweightstr);
+        System.err.println("*  HeuristicWeight          " + weight);
 
         startTime = System.currentTimeMillis();
         HMMBloomSearch.printHeader(System.out, isProt);
 
-        //Set<String> processed = new HashSet();
-        String key;
-
+        KmerStart line;
+        KmerStartsReader reader = new KmerStartsReader(kmersFile);
+        HMMGraphSearch search = new HMMGraphSearch(k);
         try {
-            while ((line = reader.readLine()) != null) {
-                String[] lexemes = line.split("\\s+");
-
-                int startingFrame = -1;
-                String startingWord = null;
-                int count = 0;
-                int startingState = -1;
-                char[] kmer = null;
-
-                if (isProt) {
-                    if (lexemes.length != 7) {
-                        System.err.println("Skipping line " + line + " (not the right number of lexemes " + lexemes.length + ")");
-                        continue;
-                    }
-
-                    //startingFrame = Integer.valueOf(lexemes[4]);
-                    startingWord = lexemes[1].toLowerCase();
-                    //count = Integer.valueOf(lexemes[5]);
-                    startingState = Integer.valueOf(lexemes[6]);
-
-                    kmer = startingWord.toCharArray();
-                } else {
-                    if (lexemes.length != 6) {
-                        System.err.println("Skipping line " + line + " (not the right number of lexemes " + lexemes.length + ")");
-                        continue;
-                    }
-
-                    startingWord = lexemes[1].toLowerCase();
-                    //count = Integer.valueOf(lexemes[4]);
-                    startingState = Integer.valueOf(lexemes[5]);
-
-                    kmer = startingWord.toCharArray();
+            while ((line = reader.readNext()) != null) {                
+                if(heuristicPruning > 0) {
+                    search.activateHeuristicPruning(heuristicPruning);
                 }
-
-                /*key = startingWord + startingState;
-                if (processed.contains(key)) {
-                    continue;
-                }
-                processed.add(key);*/
+                search.setHWeight(hweight);
 
                 kmerCount++;
 
-                if (startingState == 0) {
-                    System.err.println("Skipping line " + line);
+                if (line.getMpos() == 0) {
+                    System.err.println("Skipping line " + line.getKmer());
                     continue;
                 }
 
-                TimeStamppedFutureTask future = new TimeStamppedFutureTask(new TimeLimitedSearchThread(search, new SearchTarget(startingWord, 0, startingState, forHMM, revHMM, bloom)));
+                TimeStamppedFutureTask future = new TimeStamppedFutureTask(
+                        new TimeLimitedSearchThread(search,
+                        new SearchTarget(line.getGeneName(),
+                        line.getQueryId(), line.getRefId(), line.getNuclKmer(), 0,
+                        line.getMpos() - 1, forHMM, revHMM, bloom)));
 
                 Thread t = new Thread(future);
                 t.setDaemon(true);

@@ -17,6 +17,7 @@
 package edu.msu.cme.rdp.graph.filter;
 
 import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -26,6 +27,8 @@ import static org.junit.Assert.*;
  */
 public class SearchTest {
 
+    int numBits = 1;
+    
     @Test
     public void testWalking() {
         int hashSizeLog2 = 20;
@@ -33,7 +36,7 @@ public class SearchTest {
         int kmerSize = 10;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq = "aaattgaagagtttgatcatggct";
@@ -44,7 +47,7 @@ public class SearchTest {
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
         long startFwd = codonFacade.getFwdHash();
         long startRc = codonFacade.getRcHash();
-        Kmer startKmer = new Kmer(testMer.toCharArray());
+        Kmer startKmer = new NuclKmer(testMer.toCharArray());
 
         Byte[] expected = new Byte[]{codonFacade.getNextNucl(), codonFacade.getNextNucl(), codonFacade.getNextNucl()};
 
@@ -61,7 +64,7 @@ public class SearchTest {
         int kmerSize = 10;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq = "aaattgaagagtttgatcatggct";
@@ -70,7 +73,7 @@ public class SearchTest {
         graphBuilder.addString(seq.toCharArray());
         testMer = "aaattgaaga";
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
-        Kmer startKmer = new Kmer(testMer.toCharArray());
+        Kmer startKmer = new NuclKmer(testMer.toCharArray());
 
         codonFacade.getNextNucl();
         long startFwd = codonFacade.getFwdHash();
@@ -90,7 +93,7 @@ public class SearchTest {
         int kmerSize = 10;
         int bitsetSizeLog2 = 16;
 
-        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2);
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, numBits);
         BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
         // first kmer: aaattgaaga
         String seq = "aaattgaagagtttgatcatggct";
@@ -99,7 +102,7 @@ public class SearchTest {
         graphBuilder.addString(seq.toCharArray());
         testMer = "aaattgaaga";
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
-        Kmer startKmer = new Kmer(testMer.toCharArray());
+        Kmer startKmer = new NuclKmer(testMer.toCharArray());
 
         assertEquals(testMer, startKmer.toString());
 
@@ -117,7 +120,7 @@ public class SearchTest {
 
         System.err.println(Long.toBinaryString(nc.getCodon()));
         System.err.println(codonFacade.getPathString());
-        assertEquals("agt", new Kmer(nc.getCodon(), 3).toString());
+        assertEquals("agt", new NuclKmer(nc.getCodon(), 3).toString());
         assertEquals("attgaagagt", kmer.toString());
 
         NextCodon expected = codonFacade.getNextCodon();

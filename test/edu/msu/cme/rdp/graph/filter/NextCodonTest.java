@@ -17,6 +17,7 @@
 package edu.msu.cme.rdp.graph.filter;
 
 import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
 import org.junit.*;
 import static org.junit.Assert.*;
 
@@ -33,14 +34,14 @@ public class NextCodonTest {
 
         char[] in = {'a', 'c', 'g', 't'};
 
-        Kmer kmer = new Kmer(in);
+        Kmer kmer = new NuclKmer(in);
         assertEquals(27, kmer.getPart(0));
         assertEquals("acgt", kmer.toString());
 
         NextCodon codon = new NextCodon(true, new byte[]{0, 1, 2});
         assertEquals('t', codon.getAminoAcid());
         assertEquals(6, codon.getCodon());
-        assertEquals("acg", new Kmer(codon.getCodon(), 3).toString());
+        assertEquals("acg", new NuclKmer(codon.getCodon(), 3).toString());
     }
 
     @Test

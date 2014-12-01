@@ -16,7 +16,6 @@
  */
 package edu.msu.cme.rdp.graph.search;
 
-import edu.msu.cme.rdp.kmer.Kmer;
 import java.io.Serializable;
 import java.util.*;
 
@@ -37,13 +36,18 @@ public class CandidatePath implements Serializable, Comparable<CandidatePath> {
     private CandidatePath() {
     }
 
-    public CandidatePath(AStarNode goal, Set<Kmer> seenKmers) {
-        //score = (int) (goal.score * AStar.INT_SCALE);
+    public CandidatePath(AStarNode goal) {
+        /*
+        if(goal.partial) {
+            score = Double.NEGATIVE_INFINITY;
+        } else {
+            score = goal.score;
+        } */
+        
         score = goal.score;
         iscore = (int) (goal.score * HMMGraphSearch.INT_SCALE);
         while (goal != null) {
             path.add(goal);
-            seenKmers.add(goal.kmer);
 
             goal = goal.discoveredFrom;
         }
@@ -147,6 +151,7 @@ public class CandidatePath implements Serializable, Comparable<CandidatePath> {
 
         if (ret == 0) {
             System.err.println("Both paths are the same score length and nodes...that is truly bizarre");
+            System.err.println(this);
         }
 
         return ret;

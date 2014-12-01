@@ -22,19 +22,20 @@ import edu.msu.cme.rdp.alignment.hmm.ProfileHMM;
 import edu.msu.cme.rdp.graph.filter.NextCodon;
 import static edu.msu.cme.rdp.alignment.hmm.TSC.*;
 import edu.msu.cme.rdp.graph.filter.CodonWalker;
-import edu.msu.cme.rdp.graph.filter.PathHolder;
+import edu.msu.cme.rdp.graph.search.heuristic.weight.HeuristicWeight;
 import edu.msu.cme.rdp.kmer.Kmer;
 import edu.msu.cme.rdp.readseq.SequenceType;
+import edu.msu.cme.rdp.readseq.utils.NuclBinMapping;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
  *
- * @author fishjord
+ * @author fishjord (edited by gilmanma)
  */
 public class NodeEnumerator {
 
-    private double hweight = 1;
+    private HeuristicWeight hweight;
     private AStarNode next;
     private NextCodon protEmission = null;
     private Byte nextNucl = null;
@@ -44,19 +45,30 @@ public class NodeEnumerator {
     private double delTrans;
     private Kmer nextKmer;
     private int nextState;
-    private boolean newKmer;
     private final ProfileHMM hmm;
     private final boolean protSearch;
     private final MostProbableHCostHMM hcost;
     private final long mask = (1L << 61) - 1;
 
-    public NodeEnumerator(ProfileHMM hmm) {
+    public NodeEnumerator(ProfileHMM hmm, HeuristicWeight hweight) {
         this.hmm = hmm;
         this.protSearch = hmm.getAlphabet() == SequenceType.Protein;
         this.hcost = hmm.getHCost();
+        this.hweight = hweight;
     }
 
-    public Set<AStarNode> enumerateNodes(AStarNode curr, CodonWalker walker, Set<Kmer> seenKmers) {
+    public Set<AStarNode> enumerateNodes(AStarNode curr, CodonWalker walker) {
+        return enumerateNodes(curr, walker, null);
+    }
+    
+    /**
+     * 
+     * @param curr
+     * @param walker
+     * @param childNode if child node is not null, only return the node matching the child node
+     * @return 
+     */
+    public Set<AStarNode> enumerateNodes(AStarNode curr, CodonWalker walker, AStarNode childNode) {
         Set<AStarNode> ret = new HashSet();
 
         nextState = curr.stateNo + 1;
@@ -81,7 +93,6 @@ public class NodeEnumerator {
                 throw new RuntimeException("I hate you.");
         }
 
-
         walker.jumpTo(curr.kmer, curr.fwdHash, curr.rcHash);
 
         if (protSearch) {
@@ -99,16 +110,25 @@ public class NodeEnumerator {
                 }
 
                 int codon = protEmission.getCodon() & 127;
-                byte b1 = (byte)(codon & 0x3);
-                byte b2 = (byte)(codon >> 2 & 0x3);
-                byte b3 = (byte)(codon >> 4 & 0x3);
+                byte b1 = (byte) (codon & 0x3);
+                byte b2 = (byte) (codon >> 2 & 0x3);
+                byte b3 = (byte) (codon >> 4 & 0x3);
                 nextKmer = curr.kmer.shiftLeft(b3).shiftLeft(b2).shiftLeft(b1);
                 emission = protEmission.getAminoAcid();
             } else {
-                nextKmer = curr.kmer.shiftLeft((byte)(nextNucl & 3));
-                emission = Kmer.intToChar[nextNucl];
+                nextKmer = curr.kmer.shiftLeft((byte) (nextNucl & 3));
+                emission = NuclBinMapping.intToChar[nextNucl];
             }
 
+            if ( childNode != null && !childNode.kmer.equals(nextKmer)){
+                if (protSearch) {
+                    protEmission = walker.getSibCodon();
+                } else {
+                    nextNucl = walker.getSibNucl();
+                }
+                continue;
+            }
+            
             final long fwdHash = walker.getFwdHash();
             final long rcHash = walker.getRcHash();
 
@@ -119,16 +139,29 @@ public class NodeEnumerator {
              *
              *************************************
              */
-            newKmer = !seenKmers.contains(nextKmer);
             next = new AStarNode(curr, nextKmer, fwdHash, rcHash, nextState, 'm');
 
+            next.realScore = curr.realScore + matchTrans + hmm.msc(nextState, emission);
+            if(next.realScore >= curr.maxScore) {
+                next.maxScore = next.realScore;
+                next.negativeCount = 0;
+            } else {
+                next.maxScore = curr.maxScore;
+                next.negativeCount = curr.negativeCount + 1;
+            }
+            next.emission = emission;
             next.thisNodeScore = matchTrans + hmm.msc(nextState, emission) - maxMatchEmission;
+            next.length = curr.length + 1;
             next.score = (curr.score + next.thisNodeScore);
-            next.fval = (int) (HMMGraphSearch.INT_SCALE * (next.score + hweight * hcost.computeHeuristicCost('m', nextState)));
-            next.hasNewKmer = curr.hasNewKmer || newKmer;
-	    next.indels = curr.indels;
+            next.fval = (int) (HMMGraphSearch.INT_SCALE * (next.score + hweight.w(next) * hcost.computeHeuristicCost('m', nextState)));
+            next.indels = curr.indels;
 
-            ret.add(next);
+            if ( childNode!= null && childNode.equals(next)){
+                ret.add(next);
+                return ret;
+            }else {
+                ret.add(next);
+            }
 
             /**
              * ************************************
@@ -141,13 +174,22 @@ public class NodeEnumerator {
                 next = new AStarNode(curr, nextKmer, fwdHash, rcHash, curr.stateNo /*
                          * Inserts don't advance the state
                          */, 'i');
+                next.realScore = curr.realScore + insTrans + hmm.isc(nextState, emission);
+                next.maxScore = curr.maxScore;
+                next.negativeCount = curr.negativeCount + 1;
+                next.emission = emission;
                 next.thisNodeScore = insTrans + hmm.isc(nextState, emission);
+                next.length = curr.length + 1;
                 next.score = (curr.score + next.thisNodeScore);
-                next.fval = (int) (HMMGraphSearch.INT_SCALE * (next.score + hweight * hcost.computeHeuristicCost('i', curr.stateNo)));
-                next.hasNewKmer = curr.hasNewKmer || newKmer;
-		next.indels = curr.indels + 1;
+                next.fval = (int) (HMMGraphSearch.INT_SCALE * (next.score + hweight.w(next) * hcost.computeHeuristicCost('i', curr.stateNo)));
+                next.indels = curr.indels + 1;
 
-                ret.add(next);
+                if ( childNode!= null && childNode.equals(next)){
+                    ret.add(next);
+                    return ret;
+                }else {
+                    ret.add(next);
+                }
             }
 
             if (protSearch) {
@@ -167,13 +209,22 @@ public class NodeEnumerator {
         if (curr.state != 'i') {
             next = new AStarNode(curr, curr.kmer, curr.fwdHash, curr.rcHash, nextState, 'd');
 
+            next.realScore = curr.realScore + delTrans;
+            next.maxScore = curr.maxScore;
+            next.negativeCount = curr.negativeCount + 1;
+            next.emission = '-';
             next.thisNodeScore = delTrans - maxMatchEmission;
+            next.length = curr.length;
             next.score = (curr.score + next.thisNodeScore);
-            next.fval = (int) (HMMGraphSearch.INT_SCALE * (next.score + hweight * hcost.computeHeuristicCost('d', nextState)));
-            next.hasNewKmer = curr.hasNewKmer;
-	    next.indels = curr.indels + 1;
+            next.fval = (int) (HMMGraphSearch.INT_SCALE * (next.score + hweight.w(next) * hcost.computeHeuristicCost('d', nextState)));
+            next.indels = curr.indels + 1;
 
-            ret.add(next);
+            if ( childNode!= null && childNode.equals(next)){
+                ret.add(next);
+                return ret;
+            }else {
+                ret.add(next);
+            }
         }
 
         return ret;
