@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Jordan Fish <fishjord at msu.edu>
+ * Copyright (C) 2012 Michigan State University <rdpstaff at msu.edu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -150,8 +150,11 @@ public class CandidatePath implements Serializable, Comparable<CandidatePath> {
         }
 
         if (ret == 0) {
-            System.err.println("Both paths are the same score length and nodes...that is truly bizarre");
-            System.err.println(this);
+            /* If getHighestScoreNode() is called to find the highest scoring node in the path,
+            it's likely that different path share the exact same subset of the high scoring path.
+            */
+            //System.err.println("Both paths are the same score length and nodes");
+            //System.err.println(this);
         }
 
         return ret;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Jordan Fish <fishjord at msu.edu>
+ * Copyright (C) 2012 Michigan State University <rdpstaff at msu.edu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,13 +56,14 @@ public class ContigMerger {
         String leftContig;
         String rightContig;
         int length;
+        String gene;
 
         public int compareTo(MergedContig o) {
             return Double.compare(o.score, score);
         }
     }
 
-    private static List<MergedContig> mergeAllContigs(Map<String, Sequence> leftContigs, Map<String, Sequence> rightContigs, String kmer, ProfileHMM hmm) {
+    private static List<MergedContig> mergeAllContigs(Map<String, Sequence> leftContigs, Map<String, Sequence> rightContigs, String kmer, String gene, ProfileHMM hmm) {
         List<MergedContig> ret = new ArrayList();
         int k = kmer.length();
 
@@ -86,6 +87,7 @@ public class ContigMerger {
                 mergedContig.leftContig = leftContig.getSeqName();
                 mergedContig.rightContig = rightContig.getSeqName();
                 mergedContig.length = seq.length();
+                mergedContig.gene = gene;
 
                 ret.add(mergedContig);
             }
@@ -94,7 +96,7 @@ public class ContigMerger {
         return ret;
     }
 
-    private static List<MergedContig> mergeContigs(Map<String, Sequence> leftContigs, Map<String, Sequence> rightContigs, String kmer, ProfileHMM hmm) {
+    private static List<MergedContig> mergeContigs(Map<String, Sequence> leftContigs, Map<String, Sequence> rightContigs, String kmer, String gene, ProfileHMM hmm) {
         List<MergedContig> finalized = new ArrayList();
         List<MergedContig> candidates = new ArrayList();
         int k = kmer.length();
@@ -121,6 +123,7 @@ public class ContigMerger {
                 mergedContig.leftContig = leftContig.getSeqName();
                 mergedContig.rightContig = rightContig.getSeqName();
                 mergedContig.length = seq.length();
+                mergedContig.gene = gene;
 
                 candidates.add(mergedContig);
 
@@ -161,10 +164,12 @@ public class ContigMerger {
         final FastaWriter nuclSeqOut;
         final boolean prot;
         final boolean all;
+        final String shortSampleName;
 
         options.addOption("a", "all", false, "Generate all combinations for multiple paths, instead of just the best");
         options.addOption("b", "min-bits", true, "Minimum bits score");
         options.addOption("l", "min-length", true, "Minimum length");
+        options.addOption("s", "short_samplename", true, "short sample name, to be used as part of contig identifiers. This allow analyzing contigs together from different samples in downstream analysis ");
         options.addOption("o", "out", true, "Write output to file instead of stdout");
 
         try {
@@ -180,6 +185,12 @@ public class ContigMerger {
                 minProtLength = Integer.valueOf(line.getOptionValue("min-length"));
             } else {
                 minProtLength = 0;
+            }
+            
+            if (line.hasOption("short_samplename")) {
+                shortSampleName = line.getOptionValue("short_samplename") + "_";
+            } else {
+                shortSampleName = "";
             }
 
             if (line.hasOption("out")) {
@@ -230,7 +241,8 @@ public class ContigMerger {
         int writtenMerges = 0;
         long startTime = System.currentTimeMillis();
         String kmer = null;
-
+        String geneName = null;
+        
         while ((line = hmmgsResultReader.readLine()) != null) {
             if (line.startsWith("#")) {
                 continue;
@@ -245,7 +257,7 @@ public class ContigMerger {
             int index = 0;
 
             String seqid = lexemes[0];
-            String geneName = lexemes[1];
+            geneName = lexemes[1];
             String readid = lexemes[2];
             String refid = lexemes[3];
             kmer = lexemes[4];
@@ -257,13 +269,13 @@ public class ContigMerger {
             SearchDirection dir = SearchDirection.valueOf(lexemes[8]);
             if (dir != lastDir) {
                 if (dir == SearchDirection.left) {                    
-                    List<MergedContig> mergedContigs = all? mergeAllContigs(leftContigs, rightContigs, kmer, hmm): mergeContigs(leftContigs, rightContigs, kmer, hmm);
+                    List<MergedContig> mergedContigs = all? mergeAllContigs(leftContigs, rightContigs, kmer, geneName, hmm): mergeContigs(leftContigs, rightContigs, kmer, geneName, hmm);
                     
                     contigsMerged++;
 
                     for (MergedContig mc : mergedContigs) {
-                        String mergedId = mc.leftContig + "_" + mc.rightContig;
-                        out.println(mergedId + "\t" + mc.length + "\t" + mc.score);
+                        String mergedId = shortSampleName + geneName + "_" + mc.leftContig + "_" + mc.rightContig;
+                        out.println( mergedId + "\t" + mc.length + "\t" + mc.score);
 
                         if (mc.score > minBits && mc.length > minProtLength) {
                             if (prot) {
@@ -293,10 +305,10 @@ public class ContigMerger {
         }
 
         if (!leftContigs.isEmpty() || !rightContigs.isEmpty()) {
-            List<MergedContig> mergedContigs = all? mergeAllContigs(leftContigs, rightContigs, kmer, hmm): mergeContigs(leftContigs, rightContigs, kmer, hmm);
+            List<MergedContig> mergedContigs = all? mergeAllContigs(leftContigs, rightContigs, kmer, geneName, hmm): mergeContigs(leftContigs, rightContigs, kmer, geneName, hmm);
            
             for (MergedContig mc : mergedContigs) {
-                String mergedId = mc.leftContig + "_" + mc.rightContig;
+                String mergedId = shortSampleName + mc.gene + "_" + mc.leftContig + "_" + mc.rightContig;
                 out.println(mergedId + "\t" + mc.length + "\t" + mc.score);
                 contigsMerged++;
 

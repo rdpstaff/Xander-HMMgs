@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Jordan Fish <fishjord at msu.edu>
+ * Copyright (C) 2012 Michigan State University <rdpstaff at msu.edu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -210,7 +210,6 @@ public class HMMGraphSearch {
                 AStarNode node = bestPath.path.get(index);
                 termNodes.put(node, bestPath.path.get(index+1));
             }		            
-
             while (bestPaths.size() < maxk) {   //Where k is the current kth shortest path
                 CandidatePath pathAk = bestBasePath;
                 kTime = System.currentTimeMillis();
@@ -243,7 +242,7 @@ public class HMMGraphSearch {
                     candidate.k = bestPaths.size();
 
                     //System.err.println(bestPaths.size() + " find goalnode " + goalNode.kmer + " " + goalNode.stateNo + " " + goalNode.score + " realscore " +  goalNode.realScore);
-                   // System.err.println("starting " + starting.kmer + " " + starting.stateNo + " ak_i_1 " + ak_i_1.kmer + " " + ak_i_1.stateNo);
+                    //System.err.println("\nstarting i " + i + " " + starting.kmer + " " + starting.stateNo + " ak_i_1 " + ak_i_1.kmer + " " + ak_i_1.stateNo);
                     
                     if (!bestPaths.contains(candidate) && !Double.isInfinite(candidate.score) ) { 
                         candidatePaths.add(candidate);                        
@@ -362,10 +361,11 @@ public class HMMGraphSearch {
 
         return ret;
     }
-    private static double[] exitProbabilities = new double[500];
+    // assume the longest protein we care is 3000 aa.
+    private static double[] exitProbabilities = new double[3000];
 
     static {
-        for (int index = 0; index < 500; index++) {
+        for (int index = 0; index < exitProbabilities.length; index++) {
             exitProbabilities[index] = Math.log(2.0 / (index + 2)) * 2;
         }
     }
@@ -448,7 +448,7 @@ public class HMMGraphSearch {
                 } 
                 
                 // find the highest scoring node along the path as the returning goal node  
-                return getHighestScoreNode(interGoal);                
+                return getHighestScoreNode(interGoal);                   
             }
 
             closed.add(curr);            

@@ -97,14 +97,14 @@ public class BloomFilterBuilder {
         args = Arrays.copyOfRange(args, readFiles.size(), args.length);
 
         if (args.length < 3 || args.length > 6) {
-            System.err.println("USAGE: BloomFilterBuilder <read_file> <bloom_out> <kmerSize> <bloomSizeLog2> [cutoff = 2] [# hashCount = 4] [bitsetSizeLog2 = 30]");
+            System.err.println("USAGE: BloomFilterBuilder <read_file> <bloom_out> <kmerSize> <bloomSizeLog2> [cutoff = 1] [# hashCount = 4] [bitsetSizeLog2 = 30]");
             System.err.println("\tread_file\n\t\tfasta or fastq files containing the reads to build the graph from " );
             System.err.println("\tbloom_out\n\t\tfile to write the bloom filter to " );
-            System.err.println("\tkmerSize\n\t\tshould be multiple of 3, (recommend 45, minimum 30, maximum 63) " );
+            System.err.println("\tkmerSize\n\t\tshould be multiple of 3, (recommend 45, maximum 63) " );
             System.err.println("\tbloomSizeLog2\n\t\tthe size of the bloom filter (or memory needed) is 2^bloomSizeLog2 bits, increase if the predicted false positive rate is greater than 1%" );           
             System.err.println("\tcutoff\n\t\tminimum number of times a kmer has to be observed in SEQFILE to be included in the final bloom filter");
-            System.err.println("\thashCount\n\t\tnumber of hash functions, recommend 4");
-            System.err.println("\tbitsetSizeLog2\n\t\tthe size of one bitSet 2^bitsetSizeLog2, recommend 30");           
+            System.err.println("\thashCount\n\t\tnumber of hash functions, default 4");
+            System.err.println("\tbitsetSizeLog2\n\t\tthe size of one bitSet 2^bitsetSizeLog2, recommend 30, usually not changed");           
             System.exit(1);
         }
 

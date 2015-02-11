@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Jordan Fish <fishjord at msu.edu>
+ * Copyright (C) 2012 Michigan State University <rdpstaff at msu.edu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -180,7 +180,6 @@ public class TimeLimitedSearch {
         File kmersFile = new File(args[5]);
 
         File nuclOutFile = new File(kmersFile.getName() + "_nucl.fasta");
-        File alignOutFile = new File(kmersFile.getName() + ".alignment");
         File protOutFile = new File(kmersFile.getName() + "_prot.fasta");
 
         HeuristicWeight hweight;
@@ -206,7 +205,6 @@ public class TimeLimitedSearch {
         }
 
         FastaWriter nuclOut = new FastaWriter(nuclOutFile);
-        FastaWriter alignOut = new FastaWriter(alignOutFile);
         FastaWriter protOut = null;
         boolean isProt = forHMM.getAlphabet() == SequenceType.Protein;
 
@@ -278,7 +276,6 @@ public class TimeLimitedSearch {
                         HMMBloomSearch.printResult(seqid, isProt, result, System.out);
 
                         nuclOut.writeSeq(seqid, result.getNuclSeq());
-                        alignOut.writeSeq(seqid, result.getAlignSeq());
                         if (isProt) {
                             protOut.writeSeq(seqid, result.getProtSeq());
                         }

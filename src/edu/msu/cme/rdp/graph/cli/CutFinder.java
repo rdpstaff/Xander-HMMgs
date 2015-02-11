@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 gilmanma
+ * Copyright (C) 2012 Michigan State University <rdpstaff at msu.edu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -152,7 +152,7 @@ public class CutFinder {
      */
     public static void main(String args[]) throws IOException {
         if(args.length < 3) {
-            System.err.println("USAGE: CutFinder <kmer size> <bloom filter> <reference files>");
+            System.err.println("USAGE: CutFinder <kmer size> <bloom filter> <query files>");
             System.exit(1);
         }
         
