@@ -55,7 +55,7 @@ public class BasicSearch {
     public BasicSearch(final int maxPaths, final ProfileHMM forHMM, final ProfileHMM revHMM, final BloomFilter bloom) {
         this.forHMM = forHMM;
         this.revHMM = revHMM;
-        this.searcher = new HMMGraphSearch(maxPaths);
+        this.searcher = new HMMGraphSearch(maxPaths, HMMGraphSearch.PRUNE_NODE);
         this.bloom = bloom;
         this.walker = bloom.new GraphState();
     }

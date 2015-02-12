@@ -46,9 +46,11 @@ public class HMMGraphSearch {
 
     public static class HackTerminateException extends RuntimeException {
     }
+    public static final int PRUNE_NODE = 20;  // prune the search if the score does not improve after p number of nodes
     public static final int INT_SCALE = 10000; //This is the number of sigfigs in a HMMER3 model, so it works out quite nicely if you ask me
     private static final int upperBound = Integer.MIN_VALUE;
-    private final int maxk;
+    private final int maxk;  // max number of shortest paths to search
+    
     
     /**
      * Map of previously discovered terminal nodes.  Used to shorten search times
@@ -57,35 +59,21 @@ public class HMMGraphSearch {
     private Map<AStarNode, AStarNode> termNodes = new HashMap<AStarNode, AStarNode>();
     
     /**
-     * How many consecutive negative real scores should be allowed during the
-     * search algorithm?  Set to -1 to deactivate.
+     * prune the search if the score does not improve after p number of nodes
+     * Set to -1 to deactivate.
      */
-    private int heuristicPruning = -1;
+    private int heuristicPruning = PRUNE_NODE;
     
     /**
      * Method to use when weighting heuristic
      */
     private HeuristicWeight hweight;
 
-    public HMMGraphSearch(int maxk) {
+    public HMMGraphSearch(int maxk, int n_nodes) {
         this.maxk = maxk;
+        this.heuristicPruning = n_nodes;
     }
     
-    /**
-     * Enables pruning of likely unproductive paths during the search
-     * 
-     * @param maxNegative   number of consecutive negative real scores to permit
-     */
-    public void activateHeuristicPruning(int maxNegative) {
-        heuristicPruning = maxNegative;
-    }
-    
-    /**
-     * Disables pruning of likely unproductive paths during the search
-     */
-    public void deactivateHeuristicPruning() {
-        heuristicPruning = -1;
-    }
     
     /**
      * Set which method should be used to weight the heuristic during f-score

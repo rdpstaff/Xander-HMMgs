@@ -127,7 +127,7 @@ public class GraphSearch {
 
         File graphOutStem = new File(kmersFile.getName() + "_graph_");
 
-        HMMGraphSearch search = new HMMGraphSearch(k);
+        HMMGraphSearch search = new HMMGraphSearch(k, HMMGraphSearch.PRUNE_NODE);
 
         ProfileHMM forHMM = HMMER3bParser.readModel(forHMMFile);
         ProfileHMM revHMM = HMMER3bParser.readModel(revHMMFile);

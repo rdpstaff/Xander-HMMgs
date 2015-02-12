@@ -116,20 +116,21 @@ public class TimeLimitedSearch {
      * @param full  whether to display option information
      */
     private static void printUsage(boolean full) {
-        System.err.println("USAGE: TimeLimitedSearch [-h] [-u] [-p <max_negative>] [-w <heuristic_weight>] [-m <heuristic_weight_method>] <k> <limit_in_seconds> <bloom_filter> <for_hmm> <rev_hmm> <kmers>");
+        System.err.println("USAGE: TimeLimitedSearch [-h] [-u] [-p <n_nodes>] <k> <limit_in_seconds> <bloom_filter> <for_hmm> <rev_hmm> <kmers>");
         if(full) {
             System.err.println("\nOptions:");
             System.err.println("\t-h\n\t\tprint this help information");
             System.err.println("\t-u\n\t\tdon't normalize the hmm input");
-            System.err.println("\t-p MAX_NEGATIVE\n\t\tmaximum number of consecutive decreases in real score before being pruned (default -1)");
-            System.err.println("\t-w HEURISTIC_WEIGHT\n\t\tbase number used by the heuristic weighting function (default 0.0)");
-            System.err.println("\t-m HEURISTIC_WEIGHT_METHOD\n\t\tmethod to use when calculating the weight of the heuristic (default 'static')");
+            System.err.println("\t-p n_nodes\n\t\tprune the search if the score does not improve after n_nodes (default "  + HMMGraphSearch.PRUNE_NODE + ", set to 0 to disable pruning)");            
             System.err.println("\tk\n\t\tnumber of best local assemblies to return for each kmer");
             System.err.println("\tlimit_in_seconds\n\t\tdtime limit for individual searches (conservative suggestion = 100)");
             System.err.println("\tbloom_filter\n\t\tbloom filter built using hmmgs build");
-            System.err.println("\tfor_hmm, rev_hmm\n\t\thidden markov models, HMMER3 format");
-            System.err.println("\tkmers\n\t\tstarting points (can use KmerFilter's fast_kmer_filter to identify starting points)");
-		   
+            System.err.println("\tfor_hmm, rev_hmm\n\t\tforward and reverse hidden markov models, HMMER3 format");
+            System.err.println("\tkmers\n\t\tstarting kmers (can use KmerFilter's fast_kmer_filter to identify starting kmers)");
+            
+            // these are experimental options, not used
+		    //System.err.println("\t-w HEURISTIC_WEIGHT\n\t\tbase number used by the heuristic weighting function (default 0.0)");
+            //System.err.println("\t-m HEURISTIC_WEIGHT_METHOD\n\t\tmethod to use when calculating the weight of the heuristic (default 'static')");
         }
     }
 
@@ -141,7 +142,7 @@ public class TimeLimitedSearch {
 
         // check for optional arguments
         boolean normalized = true;
-        int heuristicPruning = -1;
+        int heuristicPruning = HMMGraphSearch.PRUNE_NODE;
         String hweightstr = "static";
         double weight = 1.0;
         int optCount = 0;
@@ -233,20 +234,18 @@ public class TimeLimitedSearch {
         System.err.println("*  Nucl contigs out file    " + nuclOutFile);
         System.err.println("*  Prot contigs out file    " + protOutFile);
         System.err.println("*  heuristicPruning         " + heuristicPruning);
-        System.err.println("*  HeuristicWeightMethod    " + hweightstr);
-        System.err.println("*  HeuristicWeight          " + weight);
+        // these are experimental options, not used
+        //System.err.println("*  HeuristicWeightMethod    " + hweightstr);
+        //System.err.println("*  HeuristicWeight          " + weight);
 
         startTime = System.currentTimeMillis();
         HMMBloomSearch.printHeader(System.out, isProt);
 
         KmerStart line;
         KmerStartsReader reader = new KmerStartsReader(kmersFile);
-        HMMGraphSearch search = new HMMGraphSearch(k);
+        HMMGraphSearch search = new HMMGraphSearch(k, heuristicPruning);
         try {
-            while ((line = reader.readNext()) != null) {                
-                if(heuristicPruning > 0) {
-                    search.activateHeuristicPruning(heuristicPruning);
-                }
+            while ((line = reader.readNext()) != null) {  
                 search.setHWeight(hweight);
 
                 kmerCount++;
