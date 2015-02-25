@@ -97,11 +97,11 @@ public class BloomFilterTest {
         // test frame 0
         testMer = "aaattgaaga";
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         char nextCodon;
         //char nextCodon = codonFacade.getNextCodon().getAminoAcid();  // not aa found
         NextCodon tmp = codonFacade.getNextCodon();
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         //assertEquals(tmp, null);
 
         //codonFacade = filter.new RightCodonFacade(testMer, 2);
@@ -125,7 +125,7 @@ public class BloomFilterTest {
         nextCodon = codonFacade.getNextCodon().getAminoAcid();  // first seq2 aaa
         assertEquals(nextCodon, 'k');
         nextCodon = codonFacade.getNextCodon().getAminoAcid();    // tgc
-        System.err.println(codonFacade.getPathString());
+        //System.err.println(codonFacade.getPathString());
         assertEquals(nextCodon, 'c');
 
         //nextCodon = codonFacade.getNextCodon().getAminoAcid();     // no more, stay on tgc
@@ -551,29 +551,29 @@ public class BloomFilterTest {
         char c;
 
         c = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         assertEquals('a', c);
         c = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         assertEquals('a', c);
         assertNull(codonFacade.getNextNucl());
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         assertNull(codonFacade.getSibNucl());
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
 
         c = NuclBinMapping.intToChar[codonFacade.getSibNucl()];
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         assertEquals('g', c);
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         c = NuclBinMapping.intToChar[codonFacade.getNextNucl()];
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         assertEquals("Expected c not " + c, 'c', c);
         assertNull(codonFacade.getNextNucl());
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         assertNull(codonFacade.getSibNucl());
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
         assertNull(codonFacade.getSibNucl());
-        System.out.println(codonFacade.getPathString());
+        //System.out.println(codonFacade.getPathString());
 
         assertFalse(codonFacade.hasMoreNucl());
     }

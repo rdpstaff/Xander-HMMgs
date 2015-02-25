@@ -151,9 +151,18 @@ public class NodeEnumeratorTest {
         NodeEnumerator ne = new NodeEnumerator(new MockProfileHMM(20, 10, SequenceType.Protein), hweight);
 
         curr = start;
+        for ( int i = 0; i <= 7; i++){
+            neighbors = ne.enumerateNodes(curr, codonFacade);
+            assertEquals((curr.state == 'm')? 3 : 2, neighbors.size());
+            curr = neighbors.iterator().next();
+            nc = kmerToCodon(curr.kmer);
+            //System.out.println("curr char " + (char) nc.getAminoAcid() + " " + curr.state + " " + curr.stateNo + " from " + curr.discoveredFrom.state + " " + curr.discoveredFrom.stateNo  + " " + curr.kmer.toString());
 
+            assertEquals("Expected q not " + nc.getAminoAcid(), 'q', nc.getAminoAcid());
+        }
+        
         neighbors = ne.enumerateNodes(curr, codonFacade);
-        assertEquals(3, neighbors.size());
+        assertEquals((curr.state == 'm')? 3 : 2, neighbors.size());
         curr = neighbors.iterator().next();
         nc = kmerToCodon(curr.kmer);
         assertEquals("Expected n not " + nc.getAminoAcid(), 'n', nc.getAminoAcid());
@@ -169,6 +178,7 @@ public class NodeEnumeratorTest {
         curr = neighbors.iterator().next();
         nc = kmerToCodon(curr.kmer);
         assertEquals("Expected l not " + nc.getAminoAcid(), 'l', nc.getAminoAcid());
+               
     }
 
     private static NextCodon kmerToCodon(Kmer kmer) {
@@ -267,7 +277,7 @@ public class NodeEnumeratorTest {
         int i = 0;
         for (AStarNode node : rank) {
             PartialResult result = HMMGraphSearch.partialResultFromGoal(node, true, false, 10, 1);
-            System.err.println(result.alignment);
+            //System.err.println(result.alignment);
         }
     }
 

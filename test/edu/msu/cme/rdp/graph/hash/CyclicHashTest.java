@@ -39,7 +39,8 @@ public class CyclicHashTest {
         CyclicHash instance = new CyclicHash(5);
         long expResult = 0L;
         long result = instance.getInitialHashvalue(s);
-        System.err.println("initial value=" + result + " " + Long.toBinaryString(result));
+        //System.err.println("initial value=" + result + " " + Long.toBinaryString(result));
+        // The hash value changes each time because a random value was chosen, can't assert
         //assertEquals(expResult, result);
 
     }
@@ -63,28 +64,28 @@ public class CyclicHashTest {
         wordlength = 5;
         instance = new CyclicHash(wordlength);
         long hashvalue = instance.getInitialHashvalue(s);
-        System.err.println("original GGCGCAGA=" + hashvalue + " " + Long.toBinaryString(hashvalue));
+        //System.err.println("original GGCGCAGA=" + hashvalue + " " + Long.toBinaryString(hashvalue));
 
         byte outchar = 2;
         byte inchar = 0;
 
         long expResult = 0L;
         long updateRight_result = instance.updateRight(hashvalue, outchar, inchar);
-        System.err.println("updateRight=" + updateRight_result + " " + Long.toBinaryString(updateRight_result));
+        //System.err.println("updateRight=" + updateRight_result + " " + Long.toBinaryString(updateRight_result));
 
 
         //should be the same as updateright_hashvalue
         long updateRight_hashvalue = instance.getInitialHashvalue("GCGCA");
-        System.err.println("GCGCA=" + updateRight_hashvalue + " " + Long.toBinaryString(updateRight_hashvalue));
+        //System.err.println("GCGCA=" + updateRight_hashvalue + " " + Long.toBinaryString(updateRight_hashvalue));
 
         //should be the same as the original hashvalue
         long updateLeft_result = instance.updateLeft(updateRight_result, inchar, outchar);
-        System.err.println("updateLeft=" + updateLeft_result + " " + Long.toBinaryString(updateLeft_result));
+        //System.err.println("updateLeft=" + updateLeft_result + " " + Long.toBinaryString(updateLeft_result));
 
 
         assertEquals(updateRight_result, updateRight_hashvalue);
 
-        // assertEquals(updateLeft_result, hashvalue);
+         assertEquals(updateLeft_result, hashvalue);
 
     }
 
@@ -113,26 +114,26 @@ public class CyclicHashTest {
         assertFalse((expectedHash == reversehash));
         reversehash = instance.updateLeft(reversehash, 0, 2);  // GC
         reversehash = instance.updateLeft(reversehash, 1, 2);  // GG
-        System.err.println("reversehash =" + reversehash + " " + format(reversehash));
-        System.err.println("expectedHash GG=" + expectedHash + " " + format(expectedHash));
+        //System.err.println("reversehash =" + reversehash + " " + format(reversehash));
+        //System.err.println("expectedHash GG=" + expectedHash + " " + format(expectedHash));
 
         assertTrue((expectedHash == reversehash));
 
         instance = new CyclicHash(5);
         String s = "GGCGCAGACG";
         long hashvalue = instance.getInitialHashvalue(s);
-        System.err.println("original GGCGC=" + hashvalue + " " + format(hashvalue));
+        //System.err.println("original GGCGC=" + hashvalue + " " + format(hashvalue));
         byte outchar = 1;
         byte inchar = 0;
 
         long expResult = 0L;
 
         long updateLeft_result = instance.updateLeft(hashvalue, inchar, outchar);
-        System.err.println("updateLeft=" + updateLeft_result + " " + format(updateLeft_result));
+        //System.err.println("updateLeft=" + updateLeft_result + " " + format(updateLeft_result));
 
         // should be the same as updateLeft_result
         long hashvalue_2 = instance.getInitialHashvalue("AGGCG");
-        System.err.println("AGGCG=" + hashvalue_2 + " " + format(hashvalue_2));
+        //System.err.println("AGGCG=" + hashvalue_2 + " " + format(hashvalue_2));
 
     }
 }

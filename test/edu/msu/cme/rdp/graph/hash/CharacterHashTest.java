@@ -51,13 +51,13 @@ public class CharacterHashTest {
         long result = instance.getHashvalue(0);
         long lower_result = instance.getHashvalue(0);
 
-        System.err.println("A=" + result + " "+ Long.toBinaryString(result));
+        //System.err.println("A=" + result + " "+ Long.toBinaryString(result));
 
         //assertEquals(expResult, result);
         assertEquals(lower_result, result);
         result = instance.getHashvalue(3);
         lower_result = instance.getHashvalue(3);
-        System.err.println("T=" + result + " " + Long.toBinaryString(result));
+        //System.err.println("T=" + result + " " + Long.toBinaryString(result));
         assertEquals(lower_result, result);
 
         result = instance.getHashvalue(3);

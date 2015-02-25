@@ -118,18 +118,18 @@ public class SearchTest {
 
         Kmer kmer = startKmer/*.shiftLeft(b3)*/.shiftLeft(b2).shiftLeft(b1);
 
-        System.err.println(Long.toBinaryString(nc.getCodon()));
-        System.err.println(codonFacade.getPathString());
+        //System.err.println(Long.toBinaryString(nc.getCodon()));
+        //System.err.println(codonFacade.getPathString());
         assertEquals("agt", new NuclKmer(nc.getCodon(), 3).toString());
         assertEquals("attgaagagt", kmer.toString());
 
         NextCodon expected = codonFacade.getNextCodon();
-        System.err.println(codonFacade.getPathString());
+        //System.err.println(codonFacade.getPathString());
 
         codonFacade.jumpTo(kmer, startFwd, startRc);
-        System.err.println(codonFacade.getPathString());
+        //System.err.println(codonFacade.getPathString());
         nc = codonFacade.getNextCodon();
-        System.err.println(codonFacade.getPathString());
+        //System.err.println(codonFacade.getPathString());
         assertEquals(expected, nc);
     }
 }
