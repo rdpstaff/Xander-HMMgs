@@ -20,9 +20,13 @@ import edu.msu.cme.rdp.graph.hash.CyclicHash;
 import edu.msu.cme.rdp.graph.hash.Hash;
 import edu.msu.cme.rdp.kmer.Kmer;
 import edu.msu.cme.rdp.kmer.NuclKmer;
+import edu.msu.cme.rdp.readseq.readers.Sequence;
+import edu.msu.cme.rdp.readseq.readers.SequenceReader;
 import edu.msu.cme.rdp.readseq.utils.NuclBinMapping;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  *
@@ -55,6 +59,8 @@ public class BloomFilter implements Serializable {
     private long totalKmers;
     private long totalStrings;
     private final Date createdOn;
+    private long numMercyKmers = 0;
+    private long singltonKmers = -1; // number of singleton kmers found during mercy kmer calculation,
 
     public static BloomFilter fromFile(File f) throws IOException {
         ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(f)));
@@ -118,13 +124,33 @@ public class BloomFilter implements Serializable {
      * Returns True if bit not previously set
      */
     boolean setBit(long bit) {
-        //bit = bit & hashMask;
         return bitArray.setBit(bit);
     }
 
     boolean isSet(long bit) {
         bit = bit & hashMask;
         return bitArray.isSet(bit);
+    }
+    
+    /**
+     * 
+     * @param xHash yHash
+     * @return the minimum count of the hash values
+     */
+    public int getMinCurrentCount(long xHash, long yHash){
+        xHash = xHash & hashMask;
+        yHash = yHash & hashMask;
+        long hashVal = xHash;
+        int minCount = Integer.MAX_VALUE;
+        // if 0 found in any hash, stop
+        for (int i = 0; i < hashCount && (minCount > 0); ++i) {
+            int temp = bitArray.getCount(hashVal);
+            minCount = (temp < minCount)? temp: minCount;
+            
+            hashVal += yHash;
+            hashVal &= hashMask;
+        }
+        return minCount;
     }
     
     public void collapse(int cutoff) {
@@ -174,7 +200,15 @@ public class BloomFilter implements Serializable {
     public long getUniqueKmers() {
         return uniqueKmers;
     }
-
+    
+    public long getMercyKmers() {
+        return numMercyKmers;
+    }
+    
+    public long getSingltonKmers() {
+        return singltonKmers;
+    }
+        
     public Date getCreatedOn() {
         return createdOn;
     }
@@ -205,6 +239,7 @@ public class BloomFilter implements Serializable {
 
         public GraphState() {
         }
+
 
         public void setState(char[] s) {
             if (s.length != kmerSize) {
@@ -262,7 +297,15 @@ public class BloomFilter implements Serializable {
 
             return BloomFilter.this.hasNode(xHash, yHash);
         }
+        
+        public int getMinCurrentCount() {
+            long xHash = (fwdHashValue > rcHashValue) ? fwdHashValue : rcHashValue;
+            long yHash = (fwdHashValue > rcHashValue) ? rcHashValue : fwdHashValue;
 
+            return BloomFilter.this.getMinCurrentCount(xHash, yHash);
+        }
+
+                
         //protected void loadCharRight( char inChar) {
         public void loadCharRight(char inChar) {
             byte c = NuclBinMapping.validateLookup[inChar];
@@ -350,6 +393,7 @@ public class BloomFilter implements Serializable {
             return BloomFilter.this.addNode(xHash, yHash);
         }
 
+           
         /**
          * adds all the kmers from the input seqStr to bloomfilter will ignore
          * the kmers with invalid bases
@@ -375,6 +419,7 @@ public class BloomFilter implements Serializable {
 
 
                     boolean wasSet = setCurrent();
+                    
                     numkmer++;
                     numUniqueKmer += wasSet ? 1 : 0;
 
@@ -412,6 +457,192 @@ public class BloomFilter implements Serializable {
         }
     }
 
+    /**
+     * This is still in testing stage
+     */
+    public class GraphMercyKmer extends BloomFilter.GraphState {
+
+        public GraphMercyKmer() {
+            if (BloomFilter.this.singltonKmers == -1) {
+                BloomFilter.this.singltonKmers = 0;
+            }
+        }
+
+        /**
+         * @return true if bloomfilter has the kmer represented by the current
+         * hashvalues
+         */
+        public boolean setCurrent() {
+            long xHash = (fwdHashValue > rcHashValue) ? fwdHashValue : rcHashValue;
+            long yHash = (fwdHashValue > rcHashValue) ? rcHashValue : fwdHashValue;
+            return BloomFilter.this.addNode(xHash, yHash);
+        }
+
+       /**
+         * 
+         * @return a copy of the GraphState
+         */
+        public GraphMercyKmer copy(){
+            GraphMercyKmer ret = new GraphMercyKmer();
+            ret.rcHashValue = this.rcHashValue;
+            ret.fwdHashValue = this.fwdHashValue;
+            ret.kmerLeftIdx = this.kmerLeftIdx;
+            ret.rkmerLeftIdx = this.rkmerLeftIdx;
+            for ( int i = 0 ; i < ret.kmer.length; i++){
+                ret.kmer[i] = this.kmer[i];
+            }
+            for ( int i = 0 ; i < ret.rkmer.length; i++){
+                ret.rkmer[i] = this.rkmer[i];
+            }
+            return ret;
+        }
+        
+        /**
+         * Identify mercy-kmers, pattern like 222X111111Y22233322
+         * vertices X does not have any outgoing vertex with count >=2, 
+         * vertices Y does not have any incoming vertex with count >=2, 
+         * then promote the mercy-kmers counts to 2
+         *
+         * @param seqStr
+         */
+        public void checkMercyKmer(char[] seqStr) {
+            int i = 0;
+            while (i < seqStr.length) {
+                // beginning at the end of the starting kmer, advance along the sequence string
+                int singletonStart = -1; // the start position of the first one in the continuous kmers with count 1
+                int singletonEnd = -1; // the start position of the last one in the continuous kmers with count 1
+                GraphMercyKmer startGraphState = null; //
+                try {
+                    clearState();
+                    int j;
+                    // find the first kmer
+                    for (j = 0; j < kmerSize && i < seqStr.length; ++j) {
+                        loadCharRight(seqStr[i]);
+                        //System.err.println("initial load " + i + " " + seqStr[i]);
+                        ++i;
+                    }
+                    if (j < kmerSize) {
+                        break;
+                    }
+
+                    while (i <= seqStr.length) {                        
+                        int count = getMinCurrentCount();
+                        //System.err.println(i + " count " + count + " " + seqStr[i-1]);
+                        if ( count == 1){
+                            BloomFilter.this.singltonKmers++;
+                            if ( singletonStart == -1){
+                                singletonStart = i - kmerSize -1;
+                                startGraphState = this.copy();
+                            }
+                            if ( singletonEnd < i ){
+                                singletonEnd = i - kmerSize ;
+                            }
+                        }else {
+                            // if the previous stretch of singleton kmers exists, check if there are mercy kmers 
+                            // we are looking for a pattern, with none-1's, the 1's, then none-1's, ex: 22221111112222
+                            //System.out.println("singletonStart " + singletonStart + " singletonEnd " + singletonEnd + " seqlength " + seqStr.length);
+
+                            if ( singletonStart > 0 && (singletonEnd + kmerSize) <= (seqStr.length-1)){
+                                int startMaxCount = 0;   
+                                int endMaxCount = 0;   
+                                // find out the count of other three sibling kmers of the start singleton kmer
+                                // keep track of the singleton sibling kmers.
+                                // note this change the start raphState
+                                ArrayList <Character> singletonStartSibKmers = new ArrayList<Character>();
+                                ArrayList <Character> singletonEndSibKmers ;
+                                char curChar = Character.toLowerCase(seqStr[singletonStart+kmerSize]);
+                                for ( int c = 0; c < NuclBinMapping.intToChar.length; c++ ){
+                                    char newchar = NuclBinMapping.intToChar[c];
+                                    if ( newchar != curChar){
+                                        startGraphState.shiftLeft(seqStr[singletonStart]);
+
+                                        startGraphState.shiftRight(newchar);
+                                        int temp_count = startGraphState.getMinCurrentCount();    
+                                       // System.err.println(i + " newchar " + newchar + " temp_count " + temp_count + " curChar " + curChar );
+                                        if ( temp_count > startMaxCount){
+                                            startMaxCount = temp_count;
+                                        }
+                                        if ( temp_count == 1){
+                                            singletonStartSibKmers.add(newchar);
+                                        }
+                                    }
+                                }
+
+                                // find the endMaxCount, note this change the current graphstate
+                               if ( startMaxCount == 0 || startMaxCount == 1 ){ 
+                                   singletonEndSibKmers = new ArrayList<Character>();
+                                   curChar = Character.toLowerCase(seqStr[singletonEnd]);
+                                    for ( int c = 0; c < NuclBinMapping.intToChar.length; c++ ){
+                                        char newchar = NuclBinMapping.intToChar[c];
+                                        if ( newchar != curChar){
+                                            
+                                            this.shiftLeft(newchar);
+                                            int temp_count = this.getMinCurrentCount();    
+                                            //System.err.println( "END newchar " + newchar + " temp_count " + temp_count + " curChar " + curChar );                                            
+                                            if ( temp_count > endMaxCount){
+                                                endMaxCount = temp_count;
+                                            }
+                                            if ( temp_count == 1){
+                                                singletonEndSibKmers.add(newchar);
+                                            }
+                                             this.shiftRight(seqStr[i-1]);
+                                            // System.err.println("END shift right to " + " char " + seqStr[i-1] + " " + this.getMinCurrentCount());
+                                        }
+                                    }
+                               }
+                              // System.err.println("startMaxCount " + startMaxCount + " endMaxCount " + endMaxCount);
+                                // if maxCount equals to 1, promote all these kmers from the same read to be mercy-kmers
+                                // basically increment the count to 2
+                                if ( (startMaxCount == 0 || startMaxCount == 1) && (endMaxCount == 0 || endMaxCount == 1)){
+                                    //  promote the singleton sibling kmers of the singletonStartKmer to mercy-kmers
+                                    for ( char c: singletonStartSibKmers ){
+                                        startGraphState.shiftLeft(seqStr[singletonStart]);
+                                        startGraphState.shiftRight(c);
+                                        startGraphState.setCurrent();
+                                        BloomFilter.this.numMercyKmers++;
+                                    }
+                                    // promte the singleton kmers from the current read
+                                    startGraphState.shiftLeft(seqStr[singletonStart-1]);
+                                    startGraphState.shiftRight(seqStr[singletonStart+kmerSize]);
+                                    startGraphState.setCurrent();
+                                    //System.err.println( " promote this reads " + seqStr[singletonStart+kmerSize] + " temp_count " + startGraphState.getCurrentCount()  );
+
+                                    for ( int m = singletonStart  +1; m <singletonEnd; m++ ){
+                                        startGraphState.shiftRight(seqStr[m+kmerSize]);
+                                        startGraphState.setCurrent();
+                                        BloomFilter.this.numMercyKmers++;
+                                    }
+                                    
+                                    //  promote the singleton sibling kmers of the singletonEndKmer to mercy-kmers
+                                    for ( char c: singletonStartSibKmers ){
+                                        this.shiftLeft(c);
+                                        this.setCurrent();
+                                        BloomFilter.this.numMercyKmers++;
+                                        this.shiftRight(seqStr[i-1]);
+                                    }                                    
+                                }
+                              
+                                // reset values
+                                singletonStart = -1;
+                                singletonEnd = -1; 
+                                startGraphState = null;
+                            }
+                            
+                        }
+                        if ( i < seqStr.length){
+                            shiftRight(seqStr[i]);
+                        }
+                        ++i;
+                    }
+
+                } catch (InvalidDNABaseException e) {
+                    ++i;
+                }
+            } // end while
+        }
+
+    }
+    
     /**
      * a class to get codons from the right side of the starting kmer
      */
@@ -801,6 +1032,44 @@ public class BloomFilter implements Serializable {
             //Since we're storing the left side path in reverese order, reverse
             //it before we return it
             return new StringBuilder(super.getPathString()).reverse().toString();
+        }
+    }
+    
+    /**
+     * This is for debugging purpose, check the counts of kmers in the graph
+     * @param readFiles
+     * @throws IOException 
+     */
+    public void printKmerCounts(List<File> readFiles) throws IOException{
+        // check counts
+        BloomFilter.GraphState bloomState =  this.new GraphState();
+        for (File readFile : readFiles) {
+            SequenceReader reader = new SequenceReader(readFile);
+            Sequence seq = null;
+            while ((seq = reader.readNextSequence()) != null) {
+                 String seqString = seq.getSeqString();
+                 if ( seqString.length() < kmerSize)
+                     continue;
+                // create a Kmer; makes it easier to scan the sequence string
+                 try {
+                    Kmer kmer = new NuclKmer(seqString.substring(0, kmerSize).toCharArray());
+                    // initialize the bloom filter to the starting kmer
+                    bloomState.setState(kmer.toString().toCharArray());
+                    System.out.println(seq.getSeqName());
+                    for(int i = kmerSize; i < seqString.length(); ++i) {
+                        // create a new reference kmer based on the current kmer
+                        System.out.println(kmer.toString() + "\t" + bloomState.getMinCurrentCount());
+
+                        kmer = kmer.shiftLeft(seqString.charAt(i));
+                        bloomState.shiftRight(seqString.charAt(i));
+
+                     }
+                    System.out.println(kmer.toString() + "\t" + bloomState.getMinCurrentCount());
+                 }catch (IllegalArgumentException ex){
+                     
+                 }
+            }
+            reader.close();
         }
     }
 }

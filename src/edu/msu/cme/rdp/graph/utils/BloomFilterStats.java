@@ -60,7 +60,11 @@ public class BloomFilterStats {
         out.println();
         out.println("Total kmers in bloom filter:   " + filter.getTotalKmers());
         out.println("Total strings inserted:        " + filter.getTotalStrings());
-        out.println("Total unique kmers:            " + filter.getUniqueKmers());
+        out.println("Total unique kmers:            " + filter.getUniqueKmers());        
+        if ( filter.getSingltonKmers() > -1){
+            out.println("Total mercy kmers if set:      " + filter.getMercyKmers());
+            out.println("Total singleton kmers:         " + filter.getSingltonKmers());
+        }
         out.println("Predicted false positive rate: " + falsePositiveRate);
     }
 
