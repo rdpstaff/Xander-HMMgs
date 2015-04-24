@@ -40,6 +40,7 @@ public class MultiBitArray implements Serializable {
      */
     private static final int MAX_BITSET_SIZE_LOG2 = 30;
 
+    public static final long serialVersionUID = -1919209030378954154L;
     /**
      * Size of an individual BitSet
      */

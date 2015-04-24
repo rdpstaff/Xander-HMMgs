@@ -499,9 +499,9 @@ public class BloomFilter implements Serializable {
         
         /**
          * Identify mercy-kmers, pattern like 222X111111Y22233322
-         * vertices X does not have any outgoing vertex with count >=2, 
-         * vertices Y does not have any incoming vertex with count >=2, 
-         * then promote the mercy-kmers counts to 2
+         * vertex X does not have any outgoing vertex with count >=2, 
+         * vertex Y does not have any incoming vertex with count >=2, 
+         * then promote the singlton kmers to mercy-kmers, change the counts to 2
          *
          * @param seqStr
          */
@@ -518,7 +518,6 @@ public class BloomFilter implements Serializable {
                     // find the first kmer
                     for (j = 0; j < kmerSize && i < seqStr.length; ++j) {
                         loadCharRight(seqStr[i]);
-                        //System.err.println("initial load " + i + " " + seqStr[i]);
                         ++i;
                     }
                     if (j < kmerSize) {
@@ -527,7 +526,6 @@ public class BloomFilter implements Serializable {
 
                     while (i <= seqStr.length) {                        
                         int count = getMinCurrentCount();
-                        //System.err.println(i + " count " + count + " " + seqStr[i-1]);
                         if ( count == 1){
                             BloomFilter.this.singltonKmers++;
                             if ( singletonStart == -1){
@@ -568,7 +566,7 @@ public class BloomFilter implements Serializable {
                                     }
                                 }
 
-                                // find the endMaxCount, note this change the current graphstate
+                                // find the endMaxCount, note this loop uses the current graphstate but restores to the status when it ends
                                if ( startMaxCount == 0 || startMaxCount == 1 ){ 
                                    singletonEndSibKmers = new ArrayList<Character>();
                                    curChar = Character.toLowerCase(seqStr[singletonEnd]);
@@ -578,7 +576,6 @@ public class BloomFilter implements Serializable {
                                             
                                             this.shiftLeft(newchar);
                                             int temp_count = this.getMinCurrentCount();    
-                                            //System.err.println( "END newchar " + newchar + " temp_count " + temp_count + " curChar " + curChar );                                            
                                             if ( temp_count > endMaxCount){
                                                 endMaxCount = temp_count;
                                             }
@@ -586,13 +583,12 @@ public class BloomFilter implements Serializable {
                                                 singletonEndSibKmers.add(newchar);
                                             }
                                              this.shiftRight(seqStr[i-1]);
-                                            // System.err.println("END shift right to " + " char " + seqStr[i-1] + " " + this.getMinCurrentCount());
                                         }
                                     }
                                }
+                                // if both maxCounts are less than 2, this means we didn't find more abundant path, promote all these kmers to be mercy-kmers
+                                // basically increment the counts to 2
                               // System.err.println("startMaxCount " + startMaxCount + " endMaxCount " + endMaxCount);
-                                // if maxCount equals to 1, promote all these kmers from the same read to be mercy-kmers
-                                // basically increment the count to 2
                                 if ( (startMaxCount == 0 || startMaxCount == 1) && (endMaxCount == 0 || endMaxCount == 1)){
                                     //  promote the singleton sibling kmers of the singletonStartKmer to mercy-kmers
                                     for ( char c: singletonStartSibKmers ){
@@ -600,12 +596,13 @@ public class BloomFilter implements Serializable {
                                         startGraphState.shiftRight(c);
                                         startGraphState.setCurrent();
                                         BloomFilter.this.numMercyKmers++;
+                                        BloomFilter.this.singltonKmers++;
                                     }
                                     // promte the singleton kmers from the current read
                                     startGraphState.shiftLeft(seqStr[singletonStart-1]);
                                     startGraphState.shiftRight(seqStr[singletonStart+kmerSize]);
                                     startGraphState.setCurrent();
-                                    //System.err.println( " promote this reads " + seqStr[singletonStart+kmerSize] + " temp_count " + startGraphState.getCurrentCount()  );
+                                    //System.err.println( " promote this reads " + seqStr[singletonStart+kmerSize] + " temp_count " + startGraphState.getMinCurrentCount());
 
                                     for ( int m = singletonStart  +1; m <singletonEnd; m++ ){
                                         startGraphState.shiftRight(seqStr[m+kmerSize]);
@@ -618,6 +615,7 @@ public class BloomFilter implements Serializable {
                                         this.shiftLeft(c);
                                         this.setCurrent();
                                         BloomFilter.this.numMercyKmers++;
+                                        BloomFilter.this.singltonKmers++;
                                         this.shiftRight(seqStr[i-1]);
                                     }                                    
                                 }

@@ -78,6 +78,18 @@ public class BloomFilterBuilder {
         return new BloomSize(m, fpr);
     }
 
+    private static void identifyMercyKmers(List<File> readFiles, BloomFilter filter ) throws IOException{
+        BloomFilter.GraphMercyKmer mercyKmerChecker = filter.new GraphMercyKmer();
+        for (File readFile : readFiles) {
+            SequenceReader reader = new SequenceReader(readFile);
+            Sequence seq = null;
+            while ((seq = reader.readNextSequence()) != null) {
+               mercyKmerChecker.checkMercyKmer(seq.getSeqString().toCharArray());
+            }
+            reader.close();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         List<File> readFiles = new ArrayList();
 
@@ -183,15 +195,22 @@ public class BloomFilterBuilder {
             }
             reader.close();
         }
+
+        System.err.println("time to parse reads: " + (System.currentTimeMillis() - startTime) / 60000.0 + " minutes");
+        if ( cutoff == 2) {//identify mercy kmers
+            long mercy_startTime = System.currentTimeMillis();
+            identifyMercyKmers(readFiles, filter);
+            // filter.printKmerCounts(readFiles); // for debugging
+            System.err.println("time to identify mercykmers: " + (System.currentTimeMillis() - mercy_startTime) / 60000.0 + " minutes");
+        }
+
         //Collapsing counting bloom filter 
         filter.collapse(cutoff);
         long endTime = System.currentTimeMillis();
-
         ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile)));
 
         oos.writeObject(filter);
         oos.close();
-
         BloomFilterStats.printStats(filter, System.out);
         System.err.println("time to build BloomFilter: " + (endTime - startTime) / 60000.0 + " minutes");
     }

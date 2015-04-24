@@ -16,7 +16,9 @@
  */
 package edu.msu.cme.rdp.graph.filter;
 
+import edu.msu.cme.rdp.graph.filter.BloomFilter.GraphState;
 import edu.msu.cme.rdp.kmer.Kmer;
+import edu.msu.cme.rdp.kmer.NuclKmer;
 import edu.msu.cme.rdp.readseq.utils.NuclBinMapping;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -601,5 +603,79 @@ public class BloomFilterTest {
         BloomFilter.RightCodonFacade codonFacade = filter.new RightCodonFacade(testMer);
 
 
+    }
+    
+    @Test
+    public void testMercykmer(){
+        int hashSizeLog2 = 30;
+        int hashCount = 4;
+        int kmerSize = 24;
+        int bitsetSizeLog2 = 30;
+
+        BloomFilter filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, 2);
+        
+        String[] seqs = new String[3];
+        seqs[0] = "ttgaaacagattgcattttacggaaaTggagggattggaaagtcaactacagtatg";
+        seqs[1] = "ttgaaacagattgcattttacggaaaCggagggattggaaagtcaactacagtatC";
+        seqs[2] = "ttgaaacagattgcattttacggaaaGggagggattggaaagtcaacta";
+        
+        String testMer1 = "aaacagattgcattttacggaaat";
+        String testMer2 = "tggagggattggaaagtcaactac";
+        String testMer3 = "aacagattgcattttacggaaagg";
+        Kmer kmer1 = new NuclKmer(testMer1.toCharArray());
+        Kmer kmer2 = new NuclKmer(testMer2.toCharArray());
+        Kmer kmer3 = new NuclKmer(testMer3.toCharArray());
+        
+        BloomFilter.GraphBuilder graphBuilder = filter.new GraphBuilder();
+        for ( int i = 0; i < seqs.length; i++){
+            graphBuilder.addString(seqs[i].toCharArray());
+        }
+        // before mercy kmer
+        BloomFilter.GraphState bloomState =  filter.new GraphState();
+        bloomState.setState(kmer1.toString().toCharArray());
+        assertEquals(kmer1.toString(), testMer1);
+        assertEquals(bloomState.getMinCurrentCount(), 1);
+        bloomState.setState(kmer2.toString().toCharArray());
+        assertEquals(kmer2.toString(), testMer2);
+        assertEquals(bloomState.getMinCurrentCount(), 1);
+        
+        // after mercy kmer
+        BloomFilter.GraphMercyKmer mercyKmerChecker = filter.new GraphMercyKmer();
+        for ( int i = 0; i < seqs.length; i++){
+             mercyKmerChecker.checkMercyKmer(seqs[i].toCharArray());
+        }
+        
+        bloomState =  filter.new GraphState();
+        bloomState.setState(kmer1.toString().toCharArray());
+        assertEquals(kmer1.toString(), testMer1);
+        assertEquals(bloomState.getMinCurrentCount(), 2);
+        bloomState.setState(kmer2.toString().toCharArray());
+        assertEquals(kmer2.toString(), testMer2);
+        assertEquals(bloomState.getMinCurrentCount(), 2);
+        bloomState.setState(kmer3.toString().toCharArray());
+        assertEquals(kmer3.toString(), testMer3);
+        assertEquals(bloomState.getMinCurrentCount(), 1); 
+        
+        
+        // 2nd test
+        filter = new BloomFilter(hashSizeLog2, hashCount, kmerSize, bitsetSizeLog2, 2);
+
+        graphBuilder = filter.new GraphBuilder();
+        for ( int i = 0; i < seqs.length; i++){
+            graphBuilder.addString(seqs[i].toCharArray());
+        }
+        // if we add seqs[2] twice, singleton kmers in seqs[0] and seq[1] should not be promoted to mery kmers.
+        graphBuilder.addString(seqs[2].toCharArray());
+        
+        // after mercy kmer
+        mercyKmerChecker = filter.new GraphMercyKmer();
+        for ( int i = 0; i < seqs.length; i++){
+             mercyKmerChecker.checkMercyKmer(seqs[i].toCharArray());
+        }
+        
+        bloomState =  filter.new GraphState();
+        bloomState.setState(kmer1.toString().toCharArray());
+        assertEquals(kmer1.toString(), testMer1);
+        assertEquals(bloomState.getMinCurrentCount(), 1); 
     }
 }
